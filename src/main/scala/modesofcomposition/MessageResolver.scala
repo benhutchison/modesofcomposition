@@ -1,8 +1,5 @@
 package modesofcomposition
 
-import cats.syntax.all._
-import cats.effect._
-
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._

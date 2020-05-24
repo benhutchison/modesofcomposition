@@ -2,6 +2,31 @@ name := "modesofcomposition"
 
 scalaVersion := "2.13.2"
 
+//these imports are automatically available in every file
+val imports = Array(
+  "java.lang",
+  "scala",
+  "scala.Predef",
+  "cats",
+  "cats.data",
+  "cats.implicits",
+  "cats.effect",
+  "cats.effect.implicits",
+  "cats.mtl",
+  "cats.mtl.implicits",
+  "eu.timepit.refined",
+  "eu.timepit.refined.api",
+  "eu.timepit.refined.auto",
+  "eu.timepit.refined.numeric",
+)
+scalacOptions += s"-Yimports:${imports.mkString(",")}"
+
+addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full)
+
+addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
+
+addCompilerPlugin("org.augustjune" %% "context-applied" % "0.1.3")
+
 val circeVersion = "0.12.3"
 
 libraryDependencies ++= Seq(
@@ -11,5 +36,8 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic"% circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
-
+  "io.circe" %% "circe-refined" % circeVersion,
+  "eu.timepit" %% "refined" % "0.9.14",
+  "com.vladkopanev" %% "cats-saga" % "0.2.3",
+  "io.chrisdavenport" %% "cats-effect-time" % "0.1.2",
 )

@@ -1,5 +1,8 @@
 package modesofcomposition
 
-case class Sku private (code: String) {
+trait IsSku
 
+trait Sku {
+
+  def resolve[F[_]](s: String): F[Either[String, Sku]]
 }
