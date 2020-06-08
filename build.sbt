@@ -38,6 +38,8 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-parser" % circeVersion,
   "io.circe" %% "circe-refined" % circeVersion,
   "eu.timepit" %% "refined" % "0.9.14",
-  "com.vladkopanev" %% "cats-saga" % "0.2.3",
   "io.chrisdavenport" %% "cats-effect-time" % "0.1.2",
+  "org.scalameta" %% "munit" % "0.7.7" % Test,
 )
+
+testFrameworks += new TestFramework("munit.Framework")

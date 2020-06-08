@@ -1,8 +1,8 @@
 package modesofcomposition
 
-trait IsSku
+case class Sku private (code: String)
 
-trait Sku {
+trait SkuLookup[F[_]] {
 
-  def resolve[F[_]](s: String): F[Either[String, Sku]]
+  def resolve(s: String): F[Either[String, Sku]]
 }

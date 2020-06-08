@@ -7,15 +7,27 @@ import io.circe.syntax._
 
 object MessageResolver {
 
-  def resolve[F[_]](msg: String): F[CustomerOrder] = ???
+  def resolve[F[_]: Async: Parallel](msg: String, skuLookup: SkuLookup[F], customerLookup: CustomerLookup[F]): F[CustomerOrder] = {
 
-  def parseMsg(msg: String): Either[Error, CustomerOrderMsg] = io.circe.parser.decode[CustomerOrderMsg](msg)
+    taggedErrorFromEither[F](parseMsg(msg)).>>= {
+    case OrderMsg(custIdStr, items) =>
+      (
+        taggedErrorFromEitherF(customerLookup.resolve(custIdStr)),
+        items.parTraverse { case (code, qty) =>
+          (
+            taggedErrorFromEitherF(skuLookup.resolve(code)),
+            refineF[Positive, F](qty),
+          ).parMapN(SkuQuantity(_, _))
+        },
+      ).mapN(CustomerOrder(_, _))
+    }
+  }
 
-  def resolveSku[F[_]: Sync](skuCode: String): F[Either[InvalidSku, Sku]] = ???
+  def parseMsg(msg: String): Either[Error, OrderMsg] = io.circe.parser.decode[OrderMsg](msg)
 
-  def resolveCustomer[F[_]: Async](customerId: String): F[Either[String, CustomerId]] = ???
 
-  def toDLQ[F[_]](msg: Json): F[Either[QueueError, Unit]] = ???
+
+  def toDLQ[F[_]](msg: Json): F[Unit] = ???
 
 }
 
