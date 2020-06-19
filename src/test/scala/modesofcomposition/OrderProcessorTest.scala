@@ -9,6 +9,10 @@ import io.circe.parser._
 import io.circe.syntax._
 import io.circe.refined._
 
+import alleycats.std.map._
+
+import scala.collection.SortedMap
+
 class OrderProcessorTests extends munit.FunSuite {
 
   implicit val cs: ContextShift[IO] = IO.contextShift(scala.concurrent.ExecutionContext.global)
@@ -19,11 +23,14 @@ class OrderProcessorTests extends munit.FunSuite {
   val seed = new UuidSeed(Array(1, 2, 3, 4))
   val toyRabbit = Sku("Rabbit")
   val toyHippo = Sku("Hippo")
+  val initialStock = Map(
+    toyRabbit -> NatInt(5),
+    toyHippo -> NatInt(1))
   val currMillis = System.currentTimeMillis()
   implicit val clock = TestSupport.clock[F](currMillis)
 
   test("dispatch") {
-    val inv = TestSupport.inventory[F](Map(toyRabbit -> refineMV[NonNegative](5)))
+    val inv = TestSupport.inventory[F](initialStock)
     val publisher = new TestPublish[F]()
 
     implicit val ref = Ref.unsafe[F, UuidSeed](seed)
@@ -33,30 +40,34 @@ class OrderProcessorTests extends munit.FunSuite {
 
     OrderProcessor.process[F](order, inv, publisher).unsafeRunSync()
 
-    val expected = Dispatched(order, Instant.ofEpochMilli(currMillis), seed.uuid)
+    val expected = Chain(Dispatched(order, Instant.ofEpochMilli(currMillis), seed.uuid)).asRight[io.circe.Error]
 
-    assertEquals(TestSupport.fromJsonBytes[Dispatched](publisher.messages("DISPATCH").headOption.get), expected)
+    assertEquals(
+      publisher.messages("DISPATCH").traverse(TestSupport.fromJsonBytes[Dispatched]),
+      expected)
   }
 
   test("backorder") {
 
-    val inv = TestSupport.inventory[F](Map(
-      toyRabbit -> refineMV[NonNegative](5), toyHippo -> refineMV[NonNegative](1)))
+    val inv = TestSupport.inventory[F](initialStock)
     val publisher = new TestPublish[F]()
     implicit val ref = Ref.unsafe[F, UuidSeed](seed)
 
     val order = CustomerOrder(CustomerId("testcustomerid"), NonEmptyChain(
-      SkuQuantity(toyRabbit, refineMV[Positive](1)),
-      SkuQuantity(toyHippo, refineMV[Positive](2)),
+      SkuQuantity(toyRabbit, PosInt(1)),
+      SkuQuantity(toyHippo, PosInt(2)),
     ))
 
     OrderProcessor.process[F](order, inv, publisher).unsafeRunSync()
 
-    val expected = Backorder(NonEmptyChain(SkuQuantity(toyHippo, refineMV[Positive](1))), order, Instant.ofEpochMilli(currMillis))
+    val expected = Chain(Backorder(NonEmptyChain(
+      SkuQuantity(toyHippo, PosInt(1))), order, Instant.ofEpochMilli(currMillis))).asRight[io.circe.Error]
 
-    assertEquals(TestSupport.fromJsonBytes[Backorder](publisher.messages("BACKORDER").headOption.get), expected)
+    assertEquals(publisher.messages("BACKORDER").traverse(TestSupport.fromJsonBytes[Backorder](_)),
+      expected)
 
     assertEquals(inv.stock(toyRabbit).toInt, 5)
     assertEquals(inv.stock(toyHippo).toInt, 1)
   }
+
 }

@@ -11,14 +11,26 @@ import io.chrisdavenport.cats.effect.time.JavaTime
 
 object OrderProcessor {
 
-  def process[F[_]: Functor: Async: Parallel: Clock: UuidRef](order: CustomerOrder,
-                                                         inventory: Inventory[F],
-                                                         publisher: Publish[F]): F[Unit] = {
+  def process[F[_] : Functor : Async : Parallel : Clock : UuidRef](order: CustomerOrder,
+                                                                   inventory: Inventory[F],
+                                                                   publisher: Publish[F]): F[Unit] = {
+    order.items.parTraverse(inventory.take).>>=(
+      allTakes => dispatchElseBackorder[F](allTakes, order).>>= {
+        case Right(dispatched) =>
+          publisher.publish("DISPATCH", dispatched.asJson.toString.getBytes)
+        case Left((backorder, taken)) =>
+          publisher.publish("BACKORDER", backorder.asJson.toString.getBytes) >>
+            taken.parTraverse_(inventory.put)
+      })
 
-    def dispatchElseBackorder(takes: NonEmptyChain[Either[InsufficientStock, Unit]]): F[OrderResponse] = {
+  }
+
+  def dispatchElseBackorder[F[_]: Functor: Async: Parallel: Clock: UuidRef](
+    takes: NonEmptyChain[Either[InsufficientStock, SkuQuantity]], order: CustomerOrder):
+    F[Either[(Backorder, Chain[SkuQuantity]), Dispatched]] = {
 
       takes.toChain.separate match {
-        case (insufficients, oks) =>
+        case (insufficients, taken) =>
           NonEmptyChain.fromChain(insufficients) match {
 
             case Some(insufficientStocks) =>
@@ -28,34 +40,20 @@ object OrderProcessor {
                     refineF[Positive, F](required - available).map(SkuQuantity(sku, _))
                 },
                 JavaTime[F].getInstant,
-              ).mapN {
-                case (requiredStock, time) => Backorder(requiredStock, order, time)
+                ).mapN {
+                case (requiredStock, time) => (Backorder(requiredStock, order, time), taken).asLeft
               }
 
             case None =>
               (
                 JavaTime[F].getInstant,
                 UuidSeed.nextUuid[F]
-              ).mapN {
-                case (time, id) => Dispatched(order, time, id)
+                ).mapN {
+                case (time, id) => Dispatched(order, time, id).asRight
               }
           }
       }
-    }
-
-    def publishJsonBytes(topic: String, r: OrderResponse) =
-      publisher.publish("BACKORDER", r.asJson.toString.getBytes)
-
-    order.items.parTraverse(inventory.take).>>=(
-    allTakes => dispatchElseBackorder(allTakes).>>= {
-      case d: Dispatched =>
-        publishJsonBytes("DISPATCH", d)
-      case b: Backorder =>
-        publishJsonBytes("BACKORDER", b) >>
-        order.items.parTraverse_(inventory.put)
-    })
   }
-
 }
 
 trait Publish[F[_]] {

@@ -18,6 +18,7 @@ val imports = Array(
   "eu.timepit.refined.api",
   "eu.timepit.refined.auto",
   "eu.timepit.refined.numeric",
+  "eu.timepit.refined.cats",
 )
 scalacOptions += s"-Yimports:${imports.mkString(",")}"
 
@@ -33,11 +34,13 @@ libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-core" % "2.2.0-M1",
   "org.typelevel" %% "cats-effect" % "2.1.3",
   "org.typelevel" %% "cats-mtl-core" % "0.7.0",
+  "org.typelevel" %% "alleycats-core" % "2.2.0-M1",
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic"% circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
   "io.circe" %% "circe-refined" % circeVersion,
   "eu.timepit" %% "refined" % "0.9.14",
+  "eu.timepit" %% "refined-cats" % "0.9.14",
   "io.chrisdavenport" %% "cats-effect-time" % "0.1.2",
   "org.scalameta" %% "munit" % "0.7.7" % Test,
 )

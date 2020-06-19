@@ -10,6 +10,9 @@ package object modesofcomposition {
   type PosInt = Int Refined Positive
   type NatInt = Int Refined NonNegative
 
+  object PosInt extends RefinedTypeOps[PosInt, Int]
+  object NatInt extends RefinedTypeOps[NatInt, Int]
+
   class RefineFPartialApply[P, F[_]] {
 
     def apply[A](a: A)(implicit F:  MonadError[F, Throwable], v: Validate[A, P]): F[Refined[A, P]] =

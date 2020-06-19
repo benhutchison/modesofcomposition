@@ -7,9 +7,11 @@ import scala.concurrent.duration.TimeUnit
 
 object TestSupport {
 
-  def fromJsonBytes[T: Decoder](bytes: Array[Byte]) = io.circe.parser.decode[T](new String(bytes)).toOption.get
+  def fromJsonBytes[T: Decoder](bytes: Array[Byte]) = {
+    io.circe.parser.decode[T](new String(bytes))
+  }
 
-  def inventory[F[_]: Applicative](initialStock: Map[Sku, NatInt]): TestInventory[F] =
+  def inventory[F[_]: Sync](initialStock: Map[Sku, NatInt]): TestInventory[F] =
     new TestInventory[F](initialStock)
 
   def clock[F[_]: Applicative](time: Long) = new Clock[F] {
@@ -20,26 +22,27 @@ object TestSupport {
 
 }
 
-case class TestInventory[F[_]: Applicative](var stock: Map[Sku, NatInt]) extends Inventory[F] {
+case class TestInventory[F[_]: Sync](var stock: Map[Sku, NatInt]) extends Inventory[F] {
 
-  override def take(skuQty: SkuQuantity): F[Either[InsufficientStock, Unit]] = F.pure(
-    stock.get(skuQty.sku).toRight(InsufficientStock(skuQty, refineMV(0))).flatMap { stockQty =>
-      refineV[NonNegative](stockQty - skuQty.quantity) match {
+  override def take(skuQty: SkuQuantity): F[Either[InsufficientStock, SkuQuantity]] = F.delay(
+    stock.get(skuQty.sku).toRight(InsufficientStock(skuQty, NatInt(0))).flatMap { stockQty =>
+      NatInt.from(stockQty - skuQty.quantity) match {
         case Right(remaining) =>
-          (stock = stock.updated(skuQty.sku, remaining)).asRight
+          this.stock = stock.updated(skuQty.sku, remaining)
+          skuQty.asRight
         case Left(insuffcientMsg) =>
           InsufficientStock(skuQty, stockQty).asLeft
       }
     })
 
   override def put(skuQty: SkuQuantity): F[Unit] =
-    F.pure(stock.updatedWith(skuQty.sku)(current => current <+> (skuQty.quantity: NatInt).some)).void
+    F.delay(this.stock = stock.updatedWith(skuQty.sku)(current => current |+| (skuQty.quantity: NatInt).some))
 
 }
 
-class TestPublish[F[_]: Applicative] extends Publish[F] {
+class TestPublish[F[_]: Sync] extends Publish[F] {
   var messages: Map[String, Chain[Array[Byte]]] = Map.empty
 
   override def publish(topic: String, msg: Array[Byte]): F[Unit] =
-    F.pure(this.messages = messages.updatedWith(topic)(_ <+> Chain(msg).some))
+    F.delay(this.messages = messages.updatedWith(topic)(_ <+> Chain(msg).some))
 }
