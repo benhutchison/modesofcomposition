@@ -1,10 +1,10 @@
 package modesofcomposition
 
-case class CustomerId private (id: String) {
+case class CustomerId private[modesofcomposition] (id: String) {
 
 }
 
 trait CustomerLookup[F[_]] {
 
-  def resolve(customerId: String)(implicit F: Async[F]): F[Either[String, CustomerId]]
+  def resolveCustomerId(customerId: String)(implicit F: Async[F]): F[Either[String, CustomerId]]
 }

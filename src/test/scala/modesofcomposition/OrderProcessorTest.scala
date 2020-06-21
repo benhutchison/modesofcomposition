@@ -30,15 +30,15 @@ class OrderProcessorTests extends munit.FunSuite {
   implicit val clock = TestSupport.clock[F](currMillis)
 
   test("dispatch") {
-    val inv = TestSupport.inventory[F](initialStock)
-    val publisher = new TestPublish[F]()
+    implicit val inv = TestSupport.inventory[F](initialStock)
+    implicit val publisher = new TestPublish[F]()
 
     implicit val ref = Ref.unsafe[F, UuidSeed](seed)
 
     val order = CustomerOrder(CustomerId("testcustomerid"),
       NonEmptyChain(SkuQuantity(toyRabbit, refineMV[Positive](1))))
 
-    OrderProcessor.process[F](order, inv, publisher).unsafeRunSync()
+    OrderProcessor.process[F](order).unsafeRunSync()
 
     val expected = Chain(Dispatched(order, Instant.ofEpochMilli(currMillis), seed.uuid)).asRight[io.circe.Error]
 
@@ -49,8 +49,8 @@ class OrderProcessorTests extends munit.FunSuite {
 
   test("backorder") {
 
-    val inv = TestSupport.inventory[F](initialStock)
-    val publisher = new TestPublish[F]()
+    implicit val inv = TestSupport.inventory[F](initialStock)
+    implicit val publisher = new TestPublish[F]()
     implicit val ref = Ref.unsafe[F, UuidSeed](seed)
 
     val order = CustomerOrder(CustomerId("testcustomerid"), NonEmptyChain(
@@ -58,7 +58,7 @@ class OrderProcessorTests extends munit.FunSuite {
       SkuQuantity(toyHippo, PosInt(2)),
     ))
 
-    OrderProcessor.process[F](order, inv, publisher).unsafeRunSync()
+    OrderProcessor.process[F](order).unsafeRunSync()
 
     val expected = Chain(Backorder(NonEmptyChain(
       SkuQuantity(toyHippo, PosInt(1))), order, Instant.ofEpochMilli(currMillis))).asRight[io.circe.Error]

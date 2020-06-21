@@ -10,8 +10,15 @@ package object modesofcomposition {
   type PosInt = Int Refined Positive
   type NatInt = Int Refined NonNegative
 
-  object PosInt extends RefinedTypeOps[PosInt, Int]
-  object NatInt extends RefinedTypeOps[NatInt, Int]
+  object PosInt extends RefinedTypeOps[PosInt, Int] with RefineFOps[Int, Positive]
+  object NatInt extends RefinedTypeOps[NatInt, Int] with RefineFOps[Int, Positive]
+
+  trait RefineFOps[A, P] {
+
+    def fromF[F[_]](a: A)(implicit F:  MonadError[F, Throwable], v: Validate[A, P]): F[Refined[A, P]] =
+      F.fromEither(refineV[P](a).leftMap(e => new IllegalStateException(s"Refinement failed on $a: $e")))
+
+  }
 
   class RefineFPartialApply[P, F[_]] {
 

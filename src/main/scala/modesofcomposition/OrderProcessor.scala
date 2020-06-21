@@ -11,16 +11,14 @@ import io.chrisdavenport.cats.effect.time.JavaTime
 
 object OrderProcessor {
 
-  def process[F[_] : Functor : Async : Parallel : Clock : UuidRef](order: CustomerOrder,
-                                                                   inventory: Inventory[F],
-                                                                   publisher: Publish[F]): F[Unit] = {
-    order.items.parTraverse(inventory.take).>>=(
+  def process[F[_] : Functor : Async : Parallel : Clock : UuidRef: Inventory: Publish](order: CustomerOrder): F[Unit] = {
+    order.items.parTraverse(F.inventoryTake).>>=(
       allTakes => dispatchElseBackorder[F](allTakes, order).>>= {
         case Right(dispatched) =>
-          publisher.publish("DISPATCH", dispatched.asJson.toString.getBytes)
+          F.publish("DISPATCH", dispatched.asJson.toString.getBytes)
         case Left((backorder, taken)) =>
-          publisher.publish("BACKORDER", backorder.asJson.toString.getBytes) >>
-            taken.parTraverse_(inventory.put)
+          F.publish("BACKORDER", backorder.asJson.toString.getBytes) >>
+            taken.parTraverse_(F.inventoryPut)
       })
 
   }

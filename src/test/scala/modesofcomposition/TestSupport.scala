@@ -22,9 +22,22 @@ object TestSupport {
 
 }
 
+case class TestSkuLookup[F[_]: Sync](skus: Map[String, Sku]) extends SkuLookup[F] {
+
+  override def resolveSku(s: String): F[Either[String, Sku]] = F.pure(skus.get(s).toRight(s"Sku code not found: $s"))
+}
+
+case class TestCustomerLookup[F[_]](customerIds: Map[String, CustomerId]) extends CustomerLookup[F] {
+
+  override def resolveCustomerId(customerId: String)(implicit F: Async[F]): F[Either[String, CustomerId]] =
+    F.pure(customerIds.get(customerId).toRight(s"CustomerId code not found: $customerId"))
+}
+
+
+
 case class TestInventory[F[_]: Sync](var stock: Map[Sku, NatInt]) extends Inventory[F] {
 
-  override def take(skuQty: SkuQuantity): F[Either[InsufficientStock, SkuQuantity]] = F.delay(
+  override def inventoryTake(skuQty: SkuQuantity): F[Either[InsufficientStock, SkuQuantity]] = F.delay(
     stock.get(skuQty.sku).toRight(InsufficientStock(skuQty, NatInt(0))).flatMap { stockQty =>
       NatInt.from(stockQty - skuQty.quantity) match {
         case Right(remaining) =>
@@ -35,7 +48,7 @@ case class TestInventory[F[_]: Sync](var stock: Map[Sku, NatInt]) extends Invent
       }
     })
 
-  override def put(skuQty: SkuQuantity): F[Unit] =
+  override def inventoryPut(skuQty: SkuQuantity): F[Unit] =
     F.delay(this.stock = stock.updatedWith(skuQty.sku)(current => current |+| (skuQty.quantity: NatInt).some))
 
 }

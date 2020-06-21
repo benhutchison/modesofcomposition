@@ -2,9 +2,9 @@ package modesofcomposition
 
 trait Inventory[F[_]] {
 
-  def take(skuQty: SkuQuantity): F[Either[InsufficientStock, SkuQuantity]]
+  def inventoryTake(skuQty: SkuQuantity): F[Either[InsufficientStock, SkuQuantity]]
 
-  def put(skuQty: SkuQuantity): F[Unit]
+  def inventoryPut(skuQty: SkuQuantity): F[Unit]
 
 }
 
