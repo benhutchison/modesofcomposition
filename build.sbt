@@ -19,6 +19,11 @@ val imports = Array(
   "eu.timepit.refined.auto",
   "eu.timepit.refined.numeric",
   "eu.timepit.refined.cats",
+  "io.circe",
+  "io.circe.generic.auto",
+  "io.circe.parser",
+  "io.circe.syntax",
+  "io.circe.refined",
 )
 scalacOptions += s"-Yimports:${imports.mkString(",")}"
 

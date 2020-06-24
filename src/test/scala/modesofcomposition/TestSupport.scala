@@ -1,6 +1,5 @@
 package modesofcomposition
 
-import io.circe.Decoder
 
 import scala.collection.mutable
 import scala.concurrent.duration.TimeUnit
