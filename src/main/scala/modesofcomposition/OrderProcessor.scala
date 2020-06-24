@@ -22,17 +22,17 @@ object OrderProcessor {
         F.publish(TopicDeadletter, msg))
 
 
-  def decodeMsg[F[_]: Sync](msg: Array[Byte]): F[OrderMsg] =
-    F.delay(new String(msg)).>>=((s) => errorValueFromEither[F](parser.decode[OrderMsg](s)))
+  def decodeMsg[F[_]: ApplicativeError[*[_], Throwable]](msg: Array[Byte]): F[OrderMsg] =
+    errorValueFromEither[F](parser.decode[OrderMsg](new String(msg)))
 
 
   def resolveOrderMsg[F[_]: Async: Parallel: SkuLookup: CustomerLookup](msg: OrderMsg): F[CustomerOrder] = msg match {
     case OrderMsg(custIdStr, items) =>
       (
-        errorValueFromEitherF(F.resolveCustomerId(custIdStr)),
+        F.resolveCustomerId(custIdStr).>>=(errorValueFromEither[F](_)),
         items.parTraverse { case (code, qty) =>
           (
-            errorValueFromEitherF(F.resolveSku(code)),
+            F.resolveSku(code).>>=(errorValueFromEither[F](_)),
             PosInt.fromF[F](qty),
           ).parMapN(SkuQuantity(_, _))
         },
