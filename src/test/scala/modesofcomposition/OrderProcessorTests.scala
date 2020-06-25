@@ -5,35 +5,37 @@ import java.time.Instant
 
 import cats.effect.concurrent.Ref
 
-class OrderProcessorTests extends munit.FunSuite {
+class OrderProcessorTests extends munit.FunSuite with TestSupport {
 
   implicit val cs: ContextShift[IO] = IO.contextShift(scala.concurrent.ExecutionContext.global)
   implicit val timer = IO.timer(scala.concurrent.ExecutionContext.global)
 
-  type F[X] = IO[X]
 
-  val seed = new UuidSeed(Array(1, 2, 3, 4))
-  val rabbitCode = "Rabbit"
-  val hippoCode = "Hippo"
-  val toyRabbit = Sku(rabbitCode)
-  val toyHippo = Sku(hippoCode)
-  val skus = Chain(toyRabbit, toyHippo)
-  val initialStock = Map(
-    toyRabbit -> NatInt(5),
-    toyHippo -> NatInt(1))
+  test("processMsgStream") {
+    val initialStock = Map(
+      toyRabbit -> NatInt(500),
+      toyHippo -> NatInt(100))
+    implicit val skuLookup = TestSkuLookup[F](Map.from(skus.map(sku => sku.code -> sku).iterator))
+    implicit val customerLookup = TestCustomerLookup[F](Map(customerIdStr -> customerId))
+    implicit val inv = TestSupport.inventory[F](initialStock)
+    implicit val publisher = new TestPublish[F]()
+    implicit val ref = Ref.unsafe[F, UuidSeed](seed)
 
-  val customerIdStr = "12345"
-  val customerId = new CustomerId(customerIdStr)
+    val orderStream = fs2.Stream.emits[F, Array[Byte]](Seq.fill(200)(orderJson(customerIdStr, 1, 1).getBytes()))
 
-  val currMillis = System.currentTimeMillis()
-  implicit val clock = TestSupport.clock[F](currMillis)
+    OrderProcessor.processMsgStream(orderStream).compile.drain.unsafeRunSync
+
+    val dispatchCount = publisher.getMessages(OrderProcessor.TopicDispatch).unsafeRunSync.size.toInt
+    assert(98.to(100).contains(dispatchCount), dispatchCount)
+    val backorderCount = publisher.getMessages(OrderProcessor.TopicBackorder).unsafeRunSync.size.toInt
+    assert(100.to(102).contains(backorderCount), backorderCount)
+  }
 
   test("processMsg - dispatch") {
     implicit val skuLookup = TestSkuLookup[F](Map.from(skus.map(sku => sku.code -> sku).iterator))
     implicit val customerLookup = TestCustomerLookup[F](Map(customerIdStr -> customerId))
     implicit val inv = TestSupport.inventory[F](initialStock)
     implicit val publisher = new TestPublish[F]()
-
     implicit val ref = Ref.unsafe[F, UuidSeed](seed)
 
     val msg =
@@ -49,8 +51,8 @@ class OrderProcessorTests extends munit.FunSuite {
       Instant.ofEpochMilli(currMillis), seed.uuid)).asRight[io.circe.Error]
 
     assertEquals(
-      publisher.messages(OrderProcessor.TopicDispatch).traverse(TestSupport.fromJsonBytes[Dispatched]),
-      expected)
+      publisher.getMessages(OrderProcessor.TopicDispatch).unsafeRunSync.
+        traverse(TestSupport.fromJsonBytes[Dispatched]), expected)
   }
 
   test("processCustomerOrder - dispatch") {
@@ -67,8 +69,8 @@ class OrderProcessorTests extends munit.FunSuite {
     val expected = Chain(Dispatched(order, Instant.ofEpochMilli(currMillis), seed.uuid)).asRight[io.circe.Error]
 
     assertEquals(
-      publisher.messages(OrderProcessor.TopicDispatch).traverse(TestSupport.fromJsonBytes[Dispatched]),
-      expected)
+      publisher.getMessages(OrderProcessor.TopicDispatch).unsafeRunSync.
+        traverse(TestSupport.fromJsonBytes[Dispatched]), expected)
   }
 
   test("processCustomerOrder - backorder") {
@@ -87,8 +89,8 @@ class OrderProcessorTests extends munit.FunSuite {
     val expected = Chain(Backorder(NonEmptyChain(
       SkuQuantity(toyHippo, PosInt(1))), order, Instant.ofEpochMilli(currMillis))).asRight[io.circe.Error]
 
-    assertEquals(publisher.messages(OrderProcessor.TopicBackorder).traverse(TestSupport.fromJsonBytes[Backorder](_)),
-      expected)
+    assertEquals(publisher.getMessages(OrderProcessor.TopicBackorder).unsafeRunSync.
+      traverse(TestSupport.fromJsonBytes[Backorder](_)), expected)
 
     assertEquals(inv.stock(toyRabbit).toInt, 5)
     assertEquals(inv.stock(toyHippo).toInt, 1)

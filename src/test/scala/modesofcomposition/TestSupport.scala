@@ -1,10 +1,29 @@
 package modesofcomposition
 
-
+import cats.effect.concurrent.Ref
 import scala.collection.mutable
 import scala.concurrent.duration.TimeUnit
 
-object TestSupport {
+trait TestSupport {
+  type F[X] = IO[X]
+
+  val seed = new UuidSeed(Array(1, 2, 3, 4))
+  val rabbitCode = "Rabbit"
+  val hippoCode = "Hippo"
+  val toyRabbit = Sku(rabbitCode)
+  val toyHippo = Sku(hippoCode)
+  val skus = Chain(toyRabbit, toyHippo)
+  val initialStock = Map(
+    toyRabbit -> NatInt(5),
+    toyHippo -> NatInt(1))
+
+  val customerIdStr = "12345"
+  val customerId = new CustomerId(customerIdStr)
+
+  val currMillis = System.currentTimeMillis()
+
+  implicit val clock = TestSupport.clock[F](currMillis)
+
 
   def fromJsonBytes[T: Decoder](bytes: Array[Byte]) = {
     io.circe.parser.decode[T](new String(bytes))
@@ -19,7 +38,17 @@ object TestSupport {
     override def monotonic(unit: TimeUnit): F[Long] = F.pure(time)
   }
 
+  def orderJson(customerIdStr: String, hippoQty: Int, rabbitQty: Int) = {
+    val rabbitStr = (rabbitQty > 0).valueOrZero(s"""["$rabbitCode", $rabbitQty]""")
+    val hippoStr = (hippoQty > 0).valueOrZero(s"""["$hippoCode", $hippoQty]""")
+    s"""{
+       |"customerId": "$customerIdStr",
+       |"skuQuantities": [${Seq(rabbitStr, hippoStr).mkString(", ")}]
+       |}""".stripMargin
+  }
+
 }
+object TestSupport extends TestSupport
 
 case class TestSkuLookup[F[_]: Sync](skus: Map[String, Sku]) extends SkuLookup[F] {
 
@@ -34,27 +63,29 @@ case class TestCustomerLookup[F[_]](customerIds: Map[String, CustomerId]) extend
 
 
 
-case class TestInventory[F[_]: Sync](var stock: Map[Sku, NatInt]) extends Inventory[F] {
+case class TestInventory[F[_]: Sync](stock: Map[Sku, NatInt]) extends Inventory[F] {
+  val refStock = Ref.unsafe[F, Map[Sku, NatInt]](stock)
 
-  override def inventoryTake(skuQty: SkuQuantity): F[Either[InsufficientStock, SkuQuantity]] = F.delay(
-    stock.get(skuQty.sku).toRight(InsufficientStock(skuQty, NatInt(0))).flatMap { stockQty =>
+  override def inventoryTake(skuQty: SkuQuantity): F[Either[InsufficientStock, SkuQuantity]] =
+    refStock.modify(stock => {
+      val stockQty = stock.getOrElse(skuQty.sku, NatInt(0))
       NatInt.from(stockQty - skuQty.quantity) match {
         case Right(remaining) =>
-          this.stock = stock.updated(skuQty.sku, remaining)
-          skuQty.asRight
+          (stock.updated(skuQty.sku, remaining), skuQty.asRight)
         case Left(insuffcientMsg) =>
-          InsufficientStock(skuQty, stockQty).asLeft
-      }
-    })
+          (stock, InsufficientStock(skuQty, stockQty).asLeft)
+      }})
 
   override def inventoryPut(skuQty: SkuQuantity): F[Unit] =
-    F.delay(this.stock = stock.updatedWith(skuQty.sku)(current => current |+| (skuQty.quantity: NatInt).some))
+    refStock.update(_.updatedWith(skuQty.sku)(current => current |+| (skuQty.quantity: NatInt).some))
 
 }
 
 class TestPublish[F[_]: Sync] extends Publish[F] {
-  var messages: Map[String, Chain[Array[Byte]]] = Map.empty
+  val refMessages = Ref.unsafe[F, Map[String, Chain[Array[Byte]]]](Map.empty)
 
   override def publish(topic: String, msg: Array[Byte]): F[Unit] =
-    F.delay(this.messages = messages.updatedWith(topic)(_ <+> Chain(msg).some))
+    refMessages.update(_.updatedWith(topic)(_ |+| Chain(msg).some))
+
+  def getMessages(topic: String) = refMessages.get.map(_.apply(topic))
 }
