@@ -2,7 +2,7 @@ name := "modesofcomposition"
 
 lazy val step1 = project.in(file("step1")).settings(commonSettings)
 
-lazy val root = project.in(file(".")).settings(commonSettings)
+lazy val solution = project.in(file("solution")).settings(commonSettings)
 
 //these imports are automatically available in every file
 val imports = Array(
