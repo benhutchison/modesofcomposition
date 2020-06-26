@@ -28,7 +28,7 @@ object OrderProcessor {
 
 
   def decodeMsg[F[_]: ApplicativeError[*[_], Throwable]](msg: Array[Byte]): F[OrderMsg] =
-    errorValueFromEither[F](parser.decode[OrderMsg](new String(msg)))
+    F.fromEither(parser.decode[OrderMsg](new String(msg)))
 
 
   def resolveOrderMsg[F[_]: Async: Parallel: SkuLookup: CustomerLookup](msg: OrderMsg): F[CustomerOrder] = msg match {

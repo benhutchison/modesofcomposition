@@ -1,6 +1,7 @@
 name := "modesofcomposition"
 
 lazy val step1 = project.in(file("step1")).settings(commonSettings)
+lazy val step1solution = project.in(file("step1solution")).settings(commonSettings)
 
 lazy val solution = project.in(file("solution")).settings(commonSettings)
 
@@ -58,3 +59,9 @@ val commonSettings = Seq(
   //munit is a simple, modern alternative to the complexity of ScalaTest & Specs2
   testFrameworks += new TestFramework("munit.Framework")
 )
+
+val testSolutions = TaskKey[Unit]("testSolutions", "Run all solution tests")
+testSolutions := Seq(
+  step1solution / Test / test,
+  solution / Test / test,
+).dependOn.value

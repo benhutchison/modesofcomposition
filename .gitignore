@@ -1,5 +1,8 @@
 *.class
 *.log
 
+*.png~
+*.png.kra
+
 project/target
 target
