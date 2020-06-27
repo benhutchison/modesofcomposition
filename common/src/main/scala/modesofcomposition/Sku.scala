@@ -6,6 +6,10 @@ package modesofcomposition
  * */
 case class Sku private (code: String, nonAvailableRegions: Set[CustomerRegion] = Set.empty)
 
+object Sku {
+  implicit def order: Order[Sku] = Order.by(_.code)
+}
+
 /** Validates a sku code string is a valid Sku */
 trait SkuLookup[F[_]] {
 

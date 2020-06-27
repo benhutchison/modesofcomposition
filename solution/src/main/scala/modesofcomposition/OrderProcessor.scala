@@ -1,5 +1,7 @@
 package modesofcomposition
 
+import scala.collection.immutable.SortedSet
+
 import io.chrisdavenport.cats.effect.time.JavaTime
 import java.util.UUID
 
@@ -7,6 +9,7 @@ object OrderProcessor {
   val TopicDispatch = "DISPATCH"
   val TopicBackorder = "BACKORDER"
   val TopicDeadletter = "DEADLETTER"
+  val TopicUnavailable = "UNAVAILABLE"
 
   def processMsgStream[F[_]: Concurrent: Parallel: Clock: UuidRef: SkuLookup: CustomerLookup: Inventory: Publish](
     msgs: fs2.Stream[F, Array[Byte]], maxParallel: Int = 20): fs2.Stream[F, Unit] =
@@ -44,7 +47,21 @@ object OrderProcessor {
       ).mapN(CustomerOrder(_, _))
     }
 
-  def processCustomerOrder[F[_] : Functor : Async : Parallel : Clock : UuidRef: Inventory: Publish](order: CustomerOrder): F[Unit] = {
+  def processCustomerOrder[F[_] : Functor : Async : Parallel : Clock : UuidRef: Inventory: Publish](
+    order: CustomerOrder): F[Unit] = {
+
+    val nonAvailableSkus = order.items.map(_.sku).filter(_.nonAvailableRegions.contains(order.customer.region))
+    if (nonAvailableSkus.isEmpty)
+      processAvailableOrder[F](order)
+    else {
+      JavaTime[F].getInstant.map(time =>
+        Unavailable(NonEmptySet.fromSetUnsafe(SortedSet.from(nonAvailableSkus.iterator)), order, time)
+      ).>>=(response =>
+          F.publish(TopicUnavailable, response.asJson.toString.getBytes))
+    }
+  }
+
+  def processAvailableOrder[F[_] : Functor : Async : Parallel : Clock : UuidRef: Inventory: Publish](order: CustomerOrder): F[Unit] = {
     order.items.parTraverse(F.inventoryTake).>>=(
       allTakes => dispatchElseBackorder[F](allTakes, order).>>= {
         case Right(dispatched) =>
