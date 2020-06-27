@@ -55,6 +55,7 @@ object OrderProcessor {
       processAvailableOrder[F](order)
     else {
       JavaTime[F].getInstant.map(time =>
+        //fromSetUnsafe is..er.. safe because if condition checked it is nonEmpty
         Unavailable(NonEmptySet.fromSetUnsafe(SortedSet.from(nonAvailableSkus.iterator)), order, time)
       ).>>=(response =>
           F.publish(TopicUnavailable, response.asJson.toString.getBytes))
