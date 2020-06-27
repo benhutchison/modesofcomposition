@@ -14,7 +14,9 @@ trait TestSupport {
   val toyRabbit = Sku(rabbitCode)
   val toyHippo = Sku(hippoCode)
   val toyKoala = Sku(koalaCode, Set(CustomerRegion.USCanada))
-  val skus = Chain(toyRabbit, toyHippo)
+  val skus = Chain(toyRabbit, toyHippo, toyKoala)
+  val skuMap = Map.from(skus.map(sku => sku.code -> sku).iterator)
+
   val initialStock = Map(
     toyRabbit -> NatInt(500),
     toyHippo -> NatInt(100),
@@ -25,6 +27,10 @@ trait TestSupport {
   val ausCustomer = new Customer(ausCustomerIdStr, CustomerRegion.Australia)
   val usCustomerIdStr = "67890"
   val usCustomer = new Customer(usCustomerIdStr, CustomerRegion.USCanada)
+  val customerMap = Map(
+    ausCustomerIdStr -> ausCustomer,
+    usCustomerIdStr -> usCustomer,
+  )
 
   val currMillis = 1577797200000L
   implicit val clock = TestSupport.clock[F](currMillis) //2020-1-1

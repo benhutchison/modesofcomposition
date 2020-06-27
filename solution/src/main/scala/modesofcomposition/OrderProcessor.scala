@@ -6,10 +6,6 @@ import io.chrisdavenport.cats.effect.time.JavaTime
 import java.util.UUID
 
 object OrderProcessor {
-  val TopicDispatch = "DISPATCH"
-  val TopicBackorder = "BACKORDER"
-  val TopicDeadletter = "DEADLETTER"
-  val TopicUnavailable = "UNAVAILABLE"
 
   def processMsgStream[F[_]: Concurrent: Parallel: Clock: UuidRef: SkuLookup: CustomerLookup: Inventory: Publish](
     msgs: fs2.Stream[F, Array[Byte]], maxParallel: Int = 20): fs2.Stream[F, Unit] =
@@ -19,7 +15,7 @@ object OrderProcessor {
   def processMsg[F[_]: Async: Parallel :Clock :UuidRef: SkuLookup: CustomerLookup: Inventory: Publish](
                                                                    msg: Array[Byte]): F[Unit] =
     decodeMsg[F](msg).>>=(processOrderMsg[F](_, msg)).handleErrorWith(e =>
-      F.delay(System.err.println(s"Message decode fail: $e")) >> F.publish(TopicDeadletter, msg))
+      F.delay(System.err.println(s"Message decode fail: $e")) >> F.publish(Topic.Deadletter, msg))
 
 
   def processOrderMsg[F[_]: Async: Parallel : Clock : UuidRef: SkuLookup: CustomerLookup: Inventory: Publish](
@@ -27,11 +23,11 @@ object OrderProcessor {
     resolveOrderMsg(orderMsg).>>=(processCustomerOrder[F](_)).
       handleErrorWith(e =>
         F.delay(System.err.println(s"Message processing failed on '${orderMsg}': $e")) >>
-        F.publish(TopicDeadletter, msg))
+        F.publish(Topic.Deadletter, msg))
 
 
   def decodeMsg[F[_]: ApplicativeError[*[_], Throwable]](msg: Array[Byte]): F[OrderMsg] =
-    F.fromEither(parser.decode[OrderMsg](new String(msg)))
+    errorValueFromEither[F](parser.decode[OrderMsg](new String(msg)))
 
 
   def resolveOrderMsg[F[_]: Async: Parallel: SkuLookup: CustomerLookup](msg: OrderMsg): F[CustomerOrder] = msg match {
@@ -58,7 +54,7 @@ object OrderProcessor {
         //fromSetUnsafe is..er.. safe because if condition checked it is nonEmpty
         Unavailable(NonEmptySet.fromSetUnsafe(SortedSet.from(nonAvailableSkus.iterator)), order, time)
       ).>>=(response =>
-          F.publish(TopicUnavailable, response.asJson.toString.getBytes))
+          F.publish(Topic.Unavailable, response.asJson.toString.getBytes))
     }
   }
 
@@ -66,9 +62,9 @@ object OrderProcessor {
     order.items.parTraverse(F.inventoryTake).>>=(
       allTakes => dispatchElseBackorder[F](allTakes, order).>>= {
         case Right(dispatched) =>
-          F.publish(TopicDispatch, dispatched.asJson.toString.getBytes)
+          F.publish(Topic.Dispatch, dispatched.asJson.toString.getBytes)
         case Left((backorder, taken)) =>
-          F.publish(TopicBackorder, backorder.asJson.toString.getBytes) >>
+          F.publish(Topic.Backorder, backorder.asJson.toString.getBytes) >>
             taken.parTraverse_(F.inventoryPut)
       })
 

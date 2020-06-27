@@ -2,6 +2,8 @@ name := "modesofcomposition"
 
 lazy val step1 = project.in(file("step1")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
 lazy val step1solution = project.in(file("step1solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
+lazy val step2 = project.in(file("step2")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
+lazy val step2solution = project.in(file("step2solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
 
 lazy val solution = project.in(file("solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
 
@@ -67,5 +69,6 @@ val commonSettings = Seq(
 val testSolutions = TaskKey[Unit]("testSolutions", "Run all solution tests")
 testSolutions := Seq(
   step1solution / Test / test,
+  step2solution / Test / test,
   solution / Test / test,
 ).dependOn.value

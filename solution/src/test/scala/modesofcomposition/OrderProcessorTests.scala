@@ -7,11 +7,9 @@ import cats.effect.concurrent.Ref
 
 class OrderProcessorTests extends munit.FunSuite with TestSupport {
 
-
-
   test("processMsgStream") {
-    implicit val skuLookup = TestSkuLookup[F](Map.from(skus.map(sku => sku.code -> sku).iterator))
-    implicit val customerLookup = TestCustomerLookup[F](Map(ausCustomerIdStr -> ausCustomer))
+    implicit val skuLookup = TestSkuLookup[F](skuMap)
+    implicit val customerLookup = TestCustomerLookup[F](customerMap)
     implicit val inv = TestSupport.inventory[F](initialStock)
     implicit val publisher = new TestPublish[F]()
     implicit val ref = Ref.unsafe[F, UuidSeed](seed)
@@ -20,15 +18,15 @@ class OrderProcessorTests extends munit.FunSuite with TestSupport {
 
     OrderProcessor.processMsgStream(orderStream).compile.drain.unsafeRunSync
 
-    val dispatchCount = publisher.getMessages(OrderProcessor.TopicDispatch).unsafeRunSync.size.toInt
+    val dispatchCount = publisher.getMessages(Topic.Dispatch).unsafeRunSync.size.toInt
     assert(98.to(100).contains(dispatchCount), dispatchCount)
-    val backorderCount = publisher.getMessages(OrderProcessor.TopicBackorder).unsafeRunSync.size.toInt
+    val backorderCount = publisher.getMessages(Topic.Backorder).unsafeRunSync.size.toInt
     assert(100.to(102).contains(backorderCount), backorderCount)
   }
 
   test("processMsg - dispatch") {
-    implicit val skuLookup = TestSkuLookup[F](Map.from(skus.map(sku => sku.code -> sku).iterator))
-    implicit val customerLookup = TestCustomerLookup[F](Map(ausCustomerIdStr -> ausCustomer))
+    implicit val skuLookup = TestSkuLookup[F](skuMap)
+    implicit val customerLookup = TestCustomerLookup[F](customerMap)
     implicit val inv = TestSupport.inventory[F](initialStock)
     implicit val publisher = new TestPublish[F]()
     implicit val ref = Ref.unsafe[F, UuidSeed](seed)
@@ -46,7 +44,7 @@ class OrderProcessorTests extends munit.FunSuite with TestSupport {
       Instant.ofEpochMilli(currMillis), seed.uuid)).asRight[io.circe.Error]
 
     assertEquals(
-      publisher.getMessages(OrderProcessor.TopicDispatch).unsafeRunSync.
+      publisher.getMessages(Topic.Dispatch).unsafeRunSync.
         traverse(TestSupport.fromJsonBytes[Dispatched]), expected)
   }
 
@@ -64,19 +62,15 @@ class OrderProcessorTests extends munit.FunSuite with TestSupport {
     val expected = Chain(Dispatched(order, Instant.ofEpochMilli(currMillis), seed.uuid)).asRight[io.circe.Error]
 
     assertEquals(
-      publisher.getMessages(OrderProcessor.TopicDispatch).unsafeRunSync.
+      publisher.getMessages(Topic.Dispatch).unsafeRunSync.
         traverse(TestSupport.fromJsonBytes[Dispatched]), expected)
   }
 
   test("processCustomerOrder - backorder") {
 
-    val initialStock = Map(
-      toyRabbit -> NatInt(500),
-      toyHippo -> NatInt(1),
-      toyKoala -> NatInt(200),
-    )
+    val lowHippoStock = initialStock.updated(toyHippo, NatInt(1))
 
-    implicit val inv = TestSupport.inventory[F](initialStock)
+    implicit val inv = TestSupport.inventory[F](lowHippoStock)
     implicit val publisher = new TestPublish[F]()
     implicit val ref = Ref.unsafe[F, UuidSeed](seed)
 
@@ -90,10 +84,10 @@ class OrderProcessorTests extends munit.FunSuite with TestSupport {
     val expected = Chain(Backorder(NonEmptyChain(
       SkuQuantity(toyHippo, PosInt(1))), order, Instant.ofEpochMilli(currMillis))).asRight[io.circe.Error]
 
-    assertEquals(publisher.getMessages(OrderProcessor.TopicBackorder).unsafeRunSync.
+    assertEquals(publisher.getMessages(Topic.Backorder).unsafeRunSync.
       traverse(TestSupport.fromJsonBytes[Backorder](_)), expected)
 
-    assertEquals(inv.stock, initialStock)
+    assertEquals(inv.stock, lowHippoStock)
   }
 
   test("processCustomerOrder - unavailable") {
@@ -110,7 +104,7 @@ class OrderProcessorTests extends munit.FunSuite with TestSupport {
     val expected = Chain(Unavailable(NonEmptySet.of(toyKoala), order, Instant.ofEpochMilli(currMillis))).asRight[io.circe.Error]
 
     assertEquals(
-      publisher.getMessages(OrderProcessor.TopicUnavailable).unsafeRunSync.
+      publisher.getMessages(Topic.Unavailable).unsafeRunSync.
         traverse(TestSupport.fromJsonBytes[Unavailable]), expected)
   }
 
