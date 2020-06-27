@@ -10,19 +10,28 @@ trait TestSupport {
   val seed = new UuidSeed(Array(1, 2, 3, 4))
   val rabbitCode = "Rabbit"
   val hippoCode = "Hippo"
+  val koalaCode = "Koala"
   val toyRabbit = Sku(rabbitCode)
   val toyHippo = Sku(hippoCode)
+  val toyKoala = Sku(koalaCode, Set(CustomerRegion.USCanada))
   val skus = Chain(toyRabbit, toyHippo)
   val initialStock = Map(
-    toyRabbit -> NatInt(5),
-    toyHippo -> NatInt(1))
+    toyRabbit -> NatInt(500),
+    toyHippo -> NatInt(100),
+    toyKoala -> NatInt(200),
+  )
 
-  val customerIdStr = "12345"
-  val customerId = new CustomerId(customerIdStr)
+  val ausCustomerIdStr = "12345"
+  val ausCustomer = new Customer(ausCustomerIdStr, CustomerRegion.Australia)
+  val usCustomerIdStr = "67890"
+  val usCustomer = new Customer(usCustomerIdStr, CustomerRegion.USCanada)
 
-  val currMillis = System.currentTimeMillis()
+  val currMillis = 1577797200000L
+  implicit val clock = TestSupport.clock[F](currMillis) //2020-1-1
 
-  implicit val clock = TestSupport.clock[F](currMillis)
+  implicit val cs: ContextShift[IO] = IO.contextShift(scala.concurrent.ExecutionContext.global)
+  implicit val timer = IO.timer(scala.concurrent.ExecutionContext.global)
+
 
 
   def fromJsonBytes[T: Decoder](bytes: Array[Byte]) = {
@@ -55,10 +64,10 @@ case class TestSkuLookup[F[_]: Sync](skus: Map[String, Sku]) extends SkuLookup[F
   override def resolveSku(s: String): F[Either[String, Sku]] = F.pure(skus.get(s).toRight(s"Sku code not found: $s"))
 }
 
-case class TestCustomerLookup[F[_]](customerIds: Map[String, CustomerId]) extends CustomerLookup[F] {
+case class TestCustomerLookup[F[_]](customerIds: Map[String, Customer]) extends CustomerLookup[F] {
 
-  override def resolveCustomerId(customerId: String)(implicit F: Async[F]): F[Either[String, CustomerId]] =
-    F.pure(customerIds.get(customerId).toRight(s"CustomerId code not found: $customerId"))
+  override def resolveCustomerId(customerId: String)(implicit F: Async[F]): F[Either[String, Customer]] =
+    F.pure(customerIds.get(customerId).toRight(s"Customer code not found: $customerId"))
 }
 
 

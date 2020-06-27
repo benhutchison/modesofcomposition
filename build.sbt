@@ -1,9 +1,13 @@
 name := "modesofcomposition"
 
-lazy val step1 = project.in(file("step1")).settings(commonSettings)
-lazy val step1solution = project.in(file("step1solution")).settings(commonSettings)
+lazy val step1 = project.in(file("step1")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
+lazy val step1solution = project.in(file("step1solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
 
-lazy val solution = project.in(file("solution")).settings(commonSettings)
+lazy val solution = project.in(file("solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
+
+//Common domain model and test support code. Not changed by or affected by exercises
+lazy val common = project.in(file("common")).settings(commonSettings)
+
 
 //these imports are automatically available in every file
 val imports = Array(
