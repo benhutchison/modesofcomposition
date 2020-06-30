@@ -72,7 +72,7 @@ case class TestSkuLookup[F[_]: Sync](skus: Map[String, Sku]) extends SkuLookup[F
 
 case class TestCustomerLookup[F[_]](customerIds: Map[String, Customer]) extends CustomerLookup[F] {
 
-  override def resolveCustomerId(customerId: String)(implicit F: Async[F]): F[Either[String, Customer]] =
+  override def resolveCustomerId(customerId: String)(implicit F: Sync[F]): F[Either[String, Customer]] =
     F.pure(customerIds.get(customerId).toRight(s"Customer code not found: $customerId"))
 }
 

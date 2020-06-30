@@ -12,13 +12,13 @@ object OrderProcessor {
     msgs.parEvalMapUnordered(maxParallel)(processMsg[F])
 
 
-  def processMsg[F[_]: Async: Parallel :Clock :UuidRef: SkuLookup: CustomerLookup: Inventory: Publish](
+  def processMsg[F[_]: Sync: Parallel :Clock :UuidRef: SkuLookup: CustomerLookup: Inventory: Publish](
                                                                    msg: Array[Byte]): F[Unit] =
     decodeMsg[F](msg).>>=(processOrderMsg[F](_, msg)).handleErrorWith(e =>
       F.delay(System.err.println(s"Message decode fail: $e")) >> F.publish(Topic.Deadletter, msg))
 
 
-  def processOrderMsg[F[_]: Async: Parallel : Clock : UuidRef: SkuLookup: CustomerLookup: Inventory: Publish](
+  def processOrderMsg[F[_]: Sync: Parallel : Clock : UuidRef: SkuLookup: CustomerLookup: Inventory: Publish](
                                                      orderMsg: OrderMsg, msg: Array[Byte]): F[Unit] =
     resolveOrderMsg(orderMsg).>>=(processCustomerOrder[F](_)).
       handleErrorWith(e =>
@@ -30,20 +30,30 @@ object OrderProcessor {
     errorValueFromEither[F](parser.decode[OrderMsg](new String(msg)))
 
 
-  def resolveOrderMsg[F[_]: Async: Parallel: SkuLookup: CustomerLookup](msg: OrderMsg): F[CustomerOrder] = msg match {
-    case OrderMsg(custIdStr, items) =>
-      (
-        F.resolveCustomerId(custIdStr).>>=(errorValueFromEither[F](_)),
-        items.parTraverse { case (code, qty) =>
+  //resolveOrderMsg has been broken down into named parts to help understand the pieces of the computation
+  def resolveOrderMsg[F[_]: Sync: Parallel: SkuLookup: CustomerLookup](msg: OrderMsg): F[CustomerOrder] =
+    msg match { case OrderMsg(custIdStr, items) =>
+
+      val resolveCustomer: F[Customer] = F.resolveCustomerId(custIdStr).>>=(errorValueFromEither[F](_))
+
+      val resolveSkuQuantity: ((String, Int)) => F[SkuQuantity] =
+        { case (code, qty) =>
           (
             F.resolveSku(code).>>=(errorValueFromEither[F](_)),
             PosInt.fromF[F](qty),
           ).parMapN(SkuQuantity(_, _))
-        },
-      ).mapN(CustomerOrder(_, _))
+        }
+
+      val resolveSkus: F[NonEmptyChain[SkuQuantity]] = items.parTraverse(resolveSkuQuantity)
+
+      //applicative composition
+      (
+        resolveCustomer,
+        resolveSkus,
+      ).parMapN(CustomerOrder(_, _))
     }
 
-  def processCustomerOrder[F[_] : Functor : Async : Parallel : Clock : UuidRef: Inventory: Publish](
+  def processCustomerOrder[F[_]: Functor: Sync: Parallel: Clock: UuidRef: Inventory: Publish](
     order: CustomerOrder): F[Unit] = {
 
     val nonAvailableSkus = order.items.map(_.sku).filter(_.nonAvailableRegions.contains(order.customer.region))
@@ -58,7 +68,9 @@ object OrderProcessor {
     }
   }
 
-  def processAvailableOrder[F[_] : Functor : Async : Parallel : Clock : UuidRef: Inventory: Publish](order: CustomerOrder): F[Unit] = {
+  def processAvailableOrder[F[_] : Functor: Sync: Parallel: Clock: UuidRef: Inventory: Publish]
+    (order: CustomerOrder): F[Unit] = {
+
     order.items.parTraverse(F.inventoryTake).>>=(
       allTakes => dispatchElseBackorder[F](allTakes, order).>>= {
         case Right(dispatched) =>
@@ -70,9 +82,9 @@ object OrderProcessor {
 
   }
 
-  def dispatchElseBackorder[F[_]: Functor: Async: Parallel: Clock: UuidRef](
-                                                                             takes: NonEmptyChain[Either[InsufficientStock, SkuQuantity]], order: CustomerOrder):
-  F[Either[(Backorder, Chain[SkuQuantity]), Dispatched]] = {
+  def dispatchElseBackorder[F[_]: Functor: Sync: Parallel: Clock: UuidRef]
+    (takes: NonEmptyChain[Either[InsufficientStock, SkuQuantity]], order: CustomerOrder):
+      F[Either[(Backorder, Chain[SkuQuantity]), Dispatched]] = {
 
     takes.toChain.separate match {
       case (insufficients, taken) =>

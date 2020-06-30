@@ -7,17 +7,27 @@ import java.util.UUID
 
 object OrderProcessor {
 
-  def resolveOrderMsg[F[_]: Async: Parallel: SkuLookup: CustomerLookup](msg: OrderMsg): F[CustomerOrder] = msg match {
-    case OrderMsg(custIdStr, items) =>
-      (
-        F.resolveCustomerId(custIdStr).>>=(errorValueFromEither[F](_)),
-        items.parTraverse { case (code, qty) =>
-          (
-            F.resolveSku(code).>>=(errorValueFromEither[F](_)),
-            PosInt.fromF[F](qty),
+  //resolveOrderMsg has been broken down into named parts to help understand the pieces of the computation
+  def resolveOrderMsg[F[_]: Sync: Parallel: SkuLookup: CustomerLookup](msg: OrderMsg): F[CustomerOrder] =
+    msg match { case OrderMsg(custIdStr, items) =>
+
+      val resolveCustomer: F[Customer] = F.resolveCustomerId(custIdStr).>>=(errorValueFromEither[F](_))
+
+      val resolveSkuQuantity: ((String, Int)) => F[SkuQuantity] =
+      { case (code, qty) =>
+        (
+          F.resolveSku(code).>>=(errorValueFromEither[F](_)),
+          PosInt.fromF[F](qty),
           ).parMapN(SkuQuantity(_, _))
-        },
-      ).mapN(CustomerOrder(_, _))
+      }
+
+      val resolveSkus: F[NonEmptyChain[SkuQuantity]] = items.parTraverse(resolveSkuQuantity)
+
+      //applicative composition
+      (
+        resolveCustomer,
+        resolveSkus,
+        ).parMapN(CustomerOrder(_, _))
     }
 
 }

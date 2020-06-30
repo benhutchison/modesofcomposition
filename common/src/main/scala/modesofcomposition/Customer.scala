@@ -6,5 +6,5 @@ case class Customer private[modesofcomposition](id: String, region: CustomerRegi
 /** Validates a Customer string is a valid customer */
 trait CustomerLookup[F[_]] {
 
-  def resolveCustomerId(customerId: String)(implicit F: Async[F]): F[Either[String, Customer]]
+  def resolveCustomerId(customerId: String)(implicit F: Sync[F]): F[Either[String, Customer]]
 }

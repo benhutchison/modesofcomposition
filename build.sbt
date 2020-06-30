@@ -66,9 +66,11 @@ val commonSettings = Seq(
   testFrameworks += new TestFramework("munit.Framework")
 )
 
-val testSolutions = TaskKey[Unit]("testSolutions", "Run all solution tests")
-testSolutions := Seq(
+val testWorking = TaskKey[Unit]("testWorking", "Compile all problems and run all solution tests")
+testWorking := Seq(
+  step1 / compile,
   step1solution / Test / test,
+  step2 / compile,
   step2solution / Test / test,
   solution / Test / test,
 ).dependOn.value
