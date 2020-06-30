@@ -4,6 +4,8 @@ lazy val step1 = project.in(file("step1")).settings(commonSettings).dependsOn(co
 lazy val step1solution = project.in(file("step1solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
 lazy val step2 = project.in(file("step2")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
 lazy val step2solution = project.in(file("step2solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
+lazy val step3 = project.in(file("step3")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
+lazy val step3solution = project.in(file("step3solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
 
 lazy val solution = project.in(file("solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
 
@@ -68,9 +70,11 @@ val commonSettings = Seq(
 
 val testWorking = TaskKey[Unit]("testWorking", "Compile all problems and run all solution tests")
 testWorking := Seq(
-  step1 / compile,
+  step1 / Compile / compile,
   step1solution / Test / test,
-  step2 / compile,
+  step2 / Compile / compile,
   step2solution / Test / test,
+  step3 / Compile / compile,
+  step3solution / Test / test,
   solution / Test / test,
 ).dependOn.value
