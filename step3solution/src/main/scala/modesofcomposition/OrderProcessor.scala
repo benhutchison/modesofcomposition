@@ -7,7 +7,7 @@ import java.util.UUID
 
 object OrderProcessor {
 
-  def processCustomerOrder[F[_]: Functor: Sync: Parallel: Clock: UuidRef: Inventory: Publish](
+  def processCustomerOrder[F[_]: Sync: Parallel: Clock: UuidRef: Inventory: Publish](
     order: CustomerOrder): F[Unit] = {
 
     val nonAvailableSkus: Chain[Sku] =
@@ -25,7 +25,7 @@ object OrderProcessor {
   }
 
   //this is a no-op in step3
-  def processAvailableOrder[F[_] : Functor: Sync: Parallel: Clock: UuidRef: Inventory: Publish]
+  def processAvailableOrder[F[_] : Sync: Parallel: Clock: UuidRef: Inventory: Publish]
     (order: CustomerOrder): F[Unit] = F.unit
 }
 

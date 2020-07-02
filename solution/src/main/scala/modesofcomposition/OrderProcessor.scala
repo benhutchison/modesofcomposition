@@ -53,7 +53,7 @@ object OrderProcessor {
       ).parMapN(CustomerOrder(_, _))
     }
 
-  def processCustomerOrder[F[_]: Functor: Sync: Parallel: Clock: UuidRef: Inventory: Publish](
+  def processCustomerOrder[F[_]: Sync: Parallel: Clock: UuidRef: Inventory: Publish](
     order: CustomerOrder): F[Unit] = {
 
     val nonAvailableSkus = order.items.map(_.sku).filter(_.nonAvailableRegions.contains(order.customer.region))
@@ -68,7 +68,7 @@ object OrderProcessor {
     }
   }
 
-  def processAvailableOrder[F[_] : Functor: Sync: Parallel: Clock: UuidRef: Inventory: Publish]
+  def processAvailableOrder[F[_]: Sync: Parallel: Clock: UuidRef: Inventory: Publish]
     (order: CustomerOrder): F[Unit] = {
 
     order.items.parTraverse(F.inventoryTake).>>=(

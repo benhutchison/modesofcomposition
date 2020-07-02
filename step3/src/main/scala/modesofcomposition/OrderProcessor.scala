@@ -7,13 +7,13 @@ import java.util.UUID
 
 object OrderProcessor {
 
-  def processCustomerOrder[F[_]: Functor: Sync: Parallel: Clock: UuidRef: Inventory: Publish](
+  def processCustomerOrder[F[_]: Sync: Parallel: Clock: UuidRef: Inventory: Publish](
     order: CustomerOrder): F[Unit] = {
 
     val nonAvailableSkus: Chain[Sku] = ???
 
     if (nonAvailableSkus.isEmpty)
-      ???
+      processAvailableOrder[F](order)
     else {
       ???
     }
