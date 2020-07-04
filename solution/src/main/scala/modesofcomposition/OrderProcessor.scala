@@ -7,17 +7,19 @@ import java.util.UUID
 
 object OrderProcessor {
 
+  /** Consumes a stream of incoming JSON order messages, processing each concurrently */
   def processMsgStream[F[_]: Concurrent: Parallel: Clock: UuidRef: SkuLookup: CustomerLookup: Inventory: Publish](
     msgs: fs2.Stream[F, Array[Byte]], maxParallel: Int = 20): fs2.Stream[F, Unit] =
     msgs.parEvalMapUnordered(maxParallel)(processMsg[F])
 
 
+  /** processes one order msg, decoding, validating, updating inventory and publishing dispatch/backorder/unavailable messages */
   def processMsg[F[_]: Sync: Parallel :Clock :UuidRef: SkuLookup: CustomerLookup: Inventory: Publish](
                                                                    msg: Array[Byte]): F[Unit] =
     decodeMsg[F](msg).>>=(processOrderMsg[F](_, msg)).handleErrorWith(e =>
       F.delay(System.err.println(s"Message decode fail: $e")) >> F.publish(Topic.Deadletter, msg))
 
-
+  /** processes one decoded msg */
   def processOrderMsg[F[_]: Sync: Parallel : Clock : UuidRef: SkuLookup: CustomerLookup: Inventory: Publish](
                                                      orderMsg: OrderMsg, msg: Array[Byte]): F[Unit] =
     resolveOrderMsg(orderMsg).>>=(processCustomerOrder[F](_)).
@@ -26,11 +28,15 @@ object OrderProcessor {
         F.publish(Topic.Deadletter, msg))
 
 
+  /** decodes one json msg from bytes to OrderMsg*/
   def decodeMsg[F[_]: ApplicativeError[*[_], Throwable]](msg: Array[Byte]): F[OrderMsg] =
     errorValueFromEither[F](parser.decode[OrderMsg](new String(msg)))
 
 
-  //resolveOrderMsg has been broken down into named parts to help understand the pieces of the computation
+  /** validates customer and sku components of an order msg in parallel, yielding a CustomerOrder valid
+   * domain object.
+   *
+   * broken down into named parts to help understand the pieces of the computation */
   def resolveOrderMsg[F[_]: Sync: Parallel: SkuLookup: CustomerLookup](msg: OrderMsg): F[CustomerOrder] =
     msg match { case OrderMsg(custIdStr, items) =>
 
@@ -53,6 +59,8 @@ object OrderProcessor {
       ).parMapN(CustomerOrder(_, _))
     }
 
+  /** Checks availability business-rule of CustomerOrder, forwards to processAvailableOrder if passed,
+   * or else publishes Unavailable message */
   def processCustomerOrder[F[_]: Sync: Parallel: Clock: UuidRef: Inventory: Publish](
     order: CustomerOrder): F[Unit] = {
 
@@ -68,6 +76,8 @@ object OrderProcessor {
     }
   }
 
+  /** Delegates to dispatchElseBackorder to determine whether the order can be dispatched, then publishes
+   * the appropriate message. If   */
   def processAvailableOrder[F[_]: Sync: Parallel: Clock: UuidRef: Inventory: Publish]
   (order: CustomerOrder): F[Unit] = {
 
@@ -75,24 +85,29 @@ object OrderProcessor {
       case Right(dispatched) =>
         F.publish(Topic.Dispatch, dispatched.asJson.toString.getBytes)
       case Left((backorder, taken)) =>
-        F.publish(Topic.Backorder, backorder.asJson.toString.getBytes) >>
-          taken.parTraverse_(F.inventoryPut)
+        F.publish(Topic.Backorder, backorder.asJson.toString.getBytes)
+
     }
   }
 
+  /** Key order business logic: try to take all ordered items from inventory. If all are in stock,
+   * the order is dispatched. If any have insufficient stock, then the order wont proceed: return all items
+   * to inventory and raise a backorder. */
   def dispatchElseBackorder[F[_]: Sync: Parallel: Clock: UuidRef: Inventory](order: CustomerOrder):
   F[Either[(Backorder, Chain[SkuQuantity]), Dispatched]] = {
 
     order.items.parTraverse(F.inventoryTake).>>=(takes =>
       insufficientsAndTaken(takes) match {
         case Some((insufficientStocks, taken)) =>
+          taken.parTraverse_(F.inventoryPut) >>
           backorder(insufficientStocks, order).tupleRight(taken).map(_.asLeft)
         case None =>
           dispatch(order).map(_.asRight)
       })
   }
 
-  def backorder[F[_] : Sync : Parallel : Clock : UuidRef]
+  /** Generate a backorder by calculating the shortfall in stock to satisfy order */
+  def backorder[F[_]: Sync: Clock]
   (insufficientStocks: NonEmptyChain[InsufficientStock], order: CustomerOrder):
   F[Backorder] = {
     (
@@ -106,7 +121,8 @@ object OrderProcessor {
     }
   }
 
-  def dispatch[F[_] : Sync : Parallel : Clock : UuidRef](order: CustomerOrder): F[Dispatched] = {
+  /** generate a dispatch combining the order, a timestap and UUID */
+  def dispatch[F[_]: Sync: Clock: UuidRef](order: CustomerOrder): F[Dispatched] = {
     (
       JavaTime[F].getInstant,
       UuidSeed.nextUuid[F]
@@ -115,6 +131,8 @@ object OrderProcessor {
     }
   }
 
+  /** Transform a collection of inventory.take outcomes into details of a possible shortfall:
+   * which items had insufficient stock, and which items were actually taken (since they need to be returned) */
   def insufficientsAndTaken(takes: NonEmptyChain[Either[InsufficientStock, SkuQuantity]]):
   Option[(NonEmptyChain[InsufficientStock], Chain[SkuQuantity])] = {
 

@@ -72,13 +72,13 @@ val commonSettings = Seq(
 
 val testWorking = TaskKey[Unit]("testWorking", "Compile all problems and run all solution tests")
 testWorking := Seq(
-  step1 / Compile / compile,
+  step1 / Test / compile,
   step1solution / Test / test,
-  step2 / Compile / compile,
+  step2 / Test / compile,
   step2solution / Test / test,
-  step3 / Compile / compile,
+  step3 / Test / compile,
   step3solution / Test / test,
-  step4 / Compile / compile,
+  step4 / Test / compile,
   step4solution / Test / test,
   solution / Test / test,
 ).dependOn.value
