@@ -18,8 +18,11 @@ There is a PDF slidepack in each subdirectory containing:
 
 Every exercise step has a corresponding solution directory with a complete working solution. You can check your answer against the provided solution, or if you get stuck you can look at the solution. Attempting a problem with only partial success, and then studiying the solution, can stimulate learning quite effectively.
 
-[step1](./step1/)
-[step1solution](./step1solution/)
+- [Step1 Decoding an Order](./step1/)   ( [step1 solution](./step1solution/) )  
+- [Step2 Validating an Order](./step2/)   ( [step2 solution](./step2solution/) )  
+- [Step3 Processing Unavailable Order](./step3/)   ( [step3 solution](./step3solution/) )  
+- [Step4 Processing Available Orders](./step4/)   ( [step4 solution](./step4solution/) )  
+- [Step5 Procesing an Order Sream](./step5/)   ( [step5 solution](./step5solution/) )  
 
 ## Getting Started
 
