@@ -8,6 +8,8 @@ lazy val step3 = project.in(file("step3")).settings(commonSettings).dependsOn(co
 lazy val step3solution = project.in(file("step3solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
 lazy val step4 = project.in(file("step4")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
 lazy val step4solution = project.in(file("step4solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
+lazy val step5 = project.in(file("step5")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
+lazy val step5solution = project.in(file("step5solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
 
 lazy val solution = project.in(file("solution")).settings(commonSettings).dependsOn(common % "test->test;compile->compile")
 
@@ -80,5 +82,7 @@ testWorking := Seq(
   step3solution / Test / test,
   step4 / Test / compile,
   step4solution / Test / test,
+  step5 / Test / compile,
+  step5solution / Test / test,
   solution / Test / test,
 ).dependOn.value

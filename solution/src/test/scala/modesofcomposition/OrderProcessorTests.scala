@@ -14,7 +14,8 @@ class OrderProcessorTests extends munit.FunSuite with TestSupport {
     implicit val publisher = new TestPublish[F]()
     implicit val ref = Ref.unsafe[F, UuidSeed](seed)
 
-    val orderStream = fs2.Stream.emits[F, Array[Byte]](Seq.fill(200)(orderJson(ausCustomerIdStr, 1, 1).getBytes()))
+    val orderStream = fs2.Stream.emits[F, Array[Byte]](Seq.fill(200)(
+      orderJson(ausCustomerIdStr, 1, 1).getBytes()))
 
     OrderProcessor.processMsgStream(orderStream).compile.drain.unsafeRunSync
 
