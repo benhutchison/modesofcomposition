@@ -10,7 +10,7 @@ class OrderProcessorTests extends munit.FunSuite {
   test("decodeMsg") {
     val msg =
       s"""{
-        |"customer": "$customerIdStr",
+        |"customerId": "$customerIdStr",
         |"skuQuantities": [["${rabbitCode}", 2]]
         |}""".stripMargin
 
