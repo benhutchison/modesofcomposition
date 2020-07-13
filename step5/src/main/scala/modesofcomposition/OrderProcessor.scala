@@ -1,9 +1,10 @@
 package modesofcomposition
 
 import scala.collection.immutable.SortedSet
-
 import io.chrisdavenport.cats.effect.time.JavaTime
 import java.util.UUID
+
+import modesofcomposition.OrderProcessor.processAvailableOrder
 
 object OrderProcessor {
 
@@ -88,13 +89,13 @@ object OrderProcessor {
     order: CustomerOrder): F[Unit] = {
 
     val nonAvailableSkus = order.items.map(_.sku).filter(_.nonAvailableRegions.contains(order.customer.region))
-    if (nonAvailableSkus.isEmpty)
-      processAvailableOrder[F](order)
-    else {
-      JavaTime[F].getInstant.map(time =>
-        //fromSetUnsafe is..er.. safe because if condition checked it is nonEmpty
-        Unavailable(NonEmptySet.fromSetUnsafe(SortedSet.from(nonAvailableSkus.iterator)), order, time)
-      ).>>=(response =>
+    NonEmptySet.fromSet(SortedSet.from(nonAvailableSkus.iterator)) match {
+      case None =>
+        processAvailableOrder[F](order)
+      case Some(nonAvailableSet) =>
+        JavaTime[F].getInstant.map(time =>
+          Unavailable(nonAvailableSet, order, time)
+        ).>>=(response =>
           F.publish(Topic.Unavailable, response.asJson.toString.getBytes))
     }
   }

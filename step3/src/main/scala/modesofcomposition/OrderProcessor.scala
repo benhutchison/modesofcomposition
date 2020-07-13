@@ -12,10 +12,11 @@ object OrderProcessor {
 
     val nonAvailableSkus: Chain[Sku] = ???
 
-    if (nonAvailableSkus.isEmpty)
-      processAvailableOrder[F](order)
-    else {
-      ???
+    NonEmptySet.fromSet(SortedSet.from(nonAvailableSkus.iterator)) match {
+      case None =>
+        processAvailableOrder[F](order)
+      case Some(nonAvailableSet) =>
+        ???
     }
   }
 
