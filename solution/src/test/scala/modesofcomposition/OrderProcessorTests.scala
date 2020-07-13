@@ -3,9 +3,61 @@ package modesofcomposition
 import java.util.UUID
 import java.time.Instant
 
+import scala.collection.mutable.ArrayBuffer
 import cats.effect.concurrent.Ref
 
+import scala.annotation.tailrec
+import scala.collection.mutable
+
 class OrderProcessorTests extends munit.FunSuite with TestSupport {
+
+  def intersperseN[F[_], A](s: fs2.Stream[F, A], separator: A, n: Int): fs2.Stream[F, A] = {
+    def goNextIntersperse(src: fs2.Stream[F, A], remain: Chunk[A], nRemain: Int): Pull[F, A, Unit] = {
+      val rs = remain.size
+      if (nRemain <= rs) {
+        val (curr, next) = remain.splitAt(nRemain)
+        Pull.output(Chunk.buffer(new ArrayBuffer[A](nRemain + 1)
+          .appendAll(curr.iterator)
+          .append(separator))) >>
+          goNextIntersperse(src, next, n)
+      } else {
+        Pull.output(remain) >>
+          src.pull.uncons.flatMap {
+            case Some((nextChunk, tl)) =>
+              val nRemainNextChunk = nRemain - rs
+              val (curr, next) = nextChunk.splitAt(nRemainNextChunk)
+              val cs = curr.size
+              val nRemainAfterNextChunk = nRemainNextChunk - cs
+              if (nRemainAfterNextChunk <= 0)
+                Pull.output(Chunk.buffer(new ArrayBuffer[A](cs + 1)
+                  .appendAll(curr.iterator)
+                  .append(separator))) >>
+                  goNextIntersperse(tl, next, n)
+              else
+                Pull.output(curr) >>
+                  goNextIntersperse(tl, next, nRemainAfterNextChunk)
+
+            case None =>
+              Pull.output(remain) >> Pull.done
+          }
+      }
+    }
+    require(n >= 1)
+    goNextIntersperse(s, Chunk.empty[A], n).stream
+  }
+
+  test("intersperseN") {
+    Seq(3, 5, 8, 18).foreach {
+      case chunkLimit =>
+        val ys = fs2.Stream.emits(Seq.fill(1000)("Y")).chunkLimit(chunkLimit).flatMap(c => fs2.Stream.chunk(c))
+        val yns = intersperseN(ys, "N", 5)
+
+        assertEquals(
+          yns.toList.take(15),
+          List("Y", "Y", "Y", "Y", "Y", "N", "Y", "Y", "Y", "Y", "Y", "N", "Y", "Y", "Y")
+        )
+    }
+  }
 
   test("processMsgStream") {
     implicit val skuLookup = TestSkuLookup[F](skuMap)
