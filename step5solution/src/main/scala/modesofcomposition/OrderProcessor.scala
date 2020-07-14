@@ -73,7 +73,7 @@ object OrderProcessor {
         JavaTime[F].getInstant.map(time =>
           Unavailable(nonAvailableSet, order, time)
         ).>>=(response =>
-          F.publish(Topic.Unavailable, response.asJson.toString.getBytes))
+          F.publish(Topic.Unavailable, response.asJsonBytes))
     }
   }
 
@@ -84,9 +84,9 @@ object OrderProcessor {
 
     dispatchElseBackorder[F](order).>>= {
       case Right(dispatched) =>
-        F.publish(Topic.Dispatch, dispatched.asJson.toString.getBytes)
+        F.publish(Topic.Dispatch, dispatched.asJsonBytes)
       case Left((backorder, taken)) =>
-        F.publish(Topic.Backorder, backorder.asJson.toString.getBytes)
+        F.publish(Topic.Backorder, backorder.asJsonBytes)
 
     }
   }

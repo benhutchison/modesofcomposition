@@ -20,7 +20,7 @@ object OrderProcessor {
         JavaTime[F].getInstant.map(time =>
           Unavailable(nonAvailableSet, order, time)
         ).>>=(response =>
-          F.publish(Topic.Unavailable, response.asJson.toString.getBytes))
+          F.publish(Topic.Unavailable, response.asJsonBytes))
     }
   }
 
