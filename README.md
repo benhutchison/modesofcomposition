@@ -49,3 +49,4 @@ Expect to see the libraries download, then compilation, and finally tests tun gr
 [FS2](https://fs2.io/)
 [Refined](https://github.com/fthomas/refined)
 [Mouse](https://github.com/typelevel/mouse)
+[Cats Effect Time](https://christopherdavenport.github.io/cats-effect-time)
