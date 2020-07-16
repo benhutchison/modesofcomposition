@@ -48,9 +48,9 @@ trait TestSupport {
     new TestInventory[F](initialStock)
 
   def clock[F[_]: Applicative](time: Long) = new Clock[F] {
-    override def realTime(unit: TimeUnit): F[Long] = F.pure(time)
+    override def realTime(unit: TimeUnit): F[Long] = Applicative[F].pure(time)
 
-    override def monotonic(unit: TimeUnit): F[Long] = F.pure(time)
+    override def monotonic(unit: TimeUnit): F[Long] = Applicative[F].pure(time)
   }
 
   def orderJson(customerIdStr: String, hippoQty: Int, rabbitQty: Int) = {
@@ -67,13 +67,13 @@ object TestSupport extends TestSupport
 
 case class TestSkuLookup[F[_]: Sync](skus: Map[String, Sku]) extends SkuLookup[F] {
 
-  override def resolveSku(s: String): F[Either[String, Sku]] = F.pure(skus.get(s).toRight(s"Sku code not found: $s"))
+  override def resolveSku(s: String): F[Either[String, Sku]] = Applicative[F].pure(skus.get(s).toRight(s"Sku code not found: $s"))
 }
 
 case class TestCustomerLookup[F[_]](customerIds: Map[String, Customer]) extends CustomerLookup[F] {
 
   override def resolveCustomerId(customerId: String)(implicit F: Sync[F]): F[Either[String, Customer]] =
-    F.pure(customerIds.get(customerId).toRight(s"Customer code not found: $customerId"))
+    Applicative[F].pure(customerIds.get(customerId).toRight(s"Customer code not found: $customerId"))
 }
 
 

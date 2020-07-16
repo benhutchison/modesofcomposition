@@ -6,6 +6,10 @@ trait Publish[F[_]] {
   /** Sends msg bytes to a named topic */
   def publish(topic: String, msg: Array[Byte]): F[Unit]
 }
+object Publish {
+
+  def apply[F[_]](implicit p: Publish[F]) = p
+}
 
 object Topic {
   val Dispatch = "DISPATCH"

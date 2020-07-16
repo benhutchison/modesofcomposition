@@ -8,3 +8,7 @@ trait CustomerLookup[F[_]] {
 
   def resolveCustomerId(customerId: String)(implicit F: Sync[F]): F[Either[String, Customer]]
 }
+object CustomerLookup {
+
+  def apply[F[_]](implicit c: CustomerLookup[F]) = c
+}

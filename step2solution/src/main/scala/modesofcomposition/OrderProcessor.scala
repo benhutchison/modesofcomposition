@@ -11,12 +11,12 @@ object OrderProcessor {
   def resolveOrderMsg[F[_]: Sync: Parallel: SkuLookup: CustomerLookup](msg: OrderMsg): F[CustomerOrder] =
     msg match { case OrderMsg(custIdStr, items) =>
 
-      val resolveCustomer: F[Customer] = F.resolveCustomerId(custIdStr).>>=(errorValueFromEither[F](_))
+      val resolveCustomer: F[Customer] = CustomerLookup[F].resolveCustomerId(custIdStr).>>=(errorValueFromEither[F](_))
 
       val resolveSkuQuantity: ((String, Int)) => F[SkuQuantity] =
       { case (code, qty) =>
         (
-          F.resolveSku(code).>>=(errorValueFromEither[F](_)),
+          SkuLookup[F].resolveSku(code).>>=(errorValueFromEither[F](_)),
           PosInt.fromF[F](qty),
           ).parMapN(SkuQuantity(_, _))
       }

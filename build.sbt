@@ -49,8 +49,6 @@ val commonSettings = Seq(
   scalacOptions += s"-Yimports:${imports.mkString(",")}",
 
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
-  addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
-  addCompilerPlugin("org.augustjune" %% "context-applied" % "0.1.3"),
 
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-core" % "2.2.0-M1",

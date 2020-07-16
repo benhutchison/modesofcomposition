@@ -22,6 +22,6 @@ object OrderProcessor {
 
   //this is a no-op in step3
   def processAvailableOrder[F[_] : Functor: Sync: Parallel: Clock: UuidRef: Inventory: Publish]
-    (order: CustomerOrder): F[Unit] = F.unit
+    (order: CustomerOrder): F[Unit] = Sync[F].unit
 }
 

@@ -28,7 +28,7 @@ trait ErrorValueSupport {
     def apply[A, E: ClassTag](e: =>Either[E, A], stackTrace: Boolean = false)(
       implicit F: ApplicativeError[F, Throwable]): F[A] = try {
       e match {
-        case Right(a) => F.pure(a)
+        case Right(a) => Applicative[F].pure(a)
         case Left(t: Throwable) => F.raiseError[A](t)
         case Left(value: E) => F.raiseError[A](new ErrorValue(value, stackTrace))
       }

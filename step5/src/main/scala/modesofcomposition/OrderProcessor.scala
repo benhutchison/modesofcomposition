@@ -22,7 +22,7 @@ object OrderProcessor {
   def processMsg[F[_]: Sync: Parallel :Clock :UuidRef: SkuLookup: CustomerLookup: Inventory: Publish](
   msg: Array[Byte]): F[Unit] =
     decodeMsg[F](msg).>>=(processOrderMsg[F](_, msg)).handleErrorWith(e =>
-      F.delay(System.err.println(s"Message decode fail: $e")) >> F.publish(Topic.Deadletter, msg))
+      Sync[F].delay(System.err.println(s"Message decode fail: $e")) >> Publish[F].publish(Topic.Deadletter, msg))
 
 
 
@@ -48,8 +48,8 @@ object OrderProcessor {
                                                      orderMsg: OrderMsg, msg: Array[Byte]): F[Unit] =
     resolveOrderMsg(orderMsg).>>=(processCustomerOrder[F](_)).
       handleErrorWith(e =>
-        F.delay(System.err.println(s"Message processing failed on '${orderMsg}': $e")) >>
-        F.publish(Topic.Deadletter, msg))
+        Sync[F].delay(System.err.println(s"Message processing failed on '${orderMsg}': $e")) >>
+        Publish[F].publish(Topic.Deadletter, msg))
 
 
   /** decodes one json msg from bytes to OrderMsg*/
@@ -64,12 +64,12 @@ object OrderProcessor {
   def resolveOrderMsg[F[_]: Sync: Parallel: SkuLookup: CustomerLookup](msg: OrderMsg): F[CustomerOrder] =
     msg match { case OrderMsg(custIdStr, items) =>
 
-      val resolveCustomer: F[Customer] = F.resolveCustomerId(custIdStr).>>=(errorValueFromEither[F](_))
+      val resolveCustomer: F[Customer] = CustomerLookup[F].resolveCustomerId(custIdStr).>>=(errorValueFromEither[F](_))
 
       val resolveSkuQuantity: ((String, Int)) => F[SkuQuantity] =
         { case (code, qty) =>
           (
-            F.resolveSku(code).>>=(errorValueFromEither[F](_)),
+            SkuLookup[F].resolveSku(code).>>=(errorValueFromEither[F](_)),
             PosInt.fromF[F](qty),
           ).parMapN(SkuQuantity(_, _))
         }
@@ -96,7 +96,7 @@ object OrderProcessor {
         JavaTime[F].getInstant.map(time =>
           Unavailable(nonAvailableSet, order, time)
         ).>>=(response =>
-          F.publish(Topic.Unavailable, response.asJson.toString.getBytes))
+          Publish[F].publish(Topic.Unavailable, response.asJson.toString.getBytes))
     }
   }
 
@@ -107,9 +107,9 @@ object OrderProcessor {
 
     dispatchElseBackorder[F](order).>>= {
       case Right(dispatched) =>
-        F.publish(Topic.Dispatch, dispatched.asJson.toString.getBytes)
+        Publish[F].publish(Topic.Dispatch, dispatched.asJson.toString.getBytes)
       case Left((backorder, taken)) =>
-        F.publish(Topic.Backorder, backorder.asJson.toString.getBytes)
+        Publish[F].publish(Topic.Backorder, backorder.asJson.toString.getBytes)
 
     }
   }
@@ -120,10 +120,10 @@ object OrderProcessor {
   def dispatchElseBackorder[F[_]: Sync: Parallel: Clock: UuidRef: Inventory](order: CustomerOrder):
   F[Either[(Backorder, Chain[SkuQuantity]), Dispatched]] = {
 
-    order.items.parTraverse(F.inventoryTake).>>=(takes =>
+    order.items.parTraverse(Inventory[F].inventoryTake).>>=(takes =>
       insufficientsAndTaken(takes) match {
         case Some((insufficientStocks, taken)) =>
-          taken.parTraverse_(F.inventoryPut) >>
+          taken.parTraverse_(Inventory[F].inventoryPut) >>
           backorder(insufficientStocks, order).tupleRight(taken).map(_.asLeft)
         case None =>
           dispatch(order).map(_.asRight)

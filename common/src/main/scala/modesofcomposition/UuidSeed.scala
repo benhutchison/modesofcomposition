@@ -1,6 +1,7 @@
 package modesofcomposition
 
 import java.util.UUID
+import cats.effect.concurrent.Ref
 
 /** A 256bit immutable pseudo-random generator seed.
  *
@@ -19,7 +20,7 @@ final case class UuidSeed(seeds: Array[Long]) {
 
 object UuidSeed {
 
-  def newSeed[F[_]: Sync]: F[UuidSeed] = F.delay(UuidSeed(Array.fill(4)(scala.util.Random.nextLong())))
+  def newSeed[F[_]: Sync]: F[UuidSeed] = Sync[F].delay(UuidSeed(Array.fill(4)(scala.util.Random.nextLong())))
 
-  def nextUuid[F[_]: Functor: UuidRef]: F[UUID] = F.getAndUpdate(_.next).map(_.uuid)
+  def nextUuid[F[_]: Functor: UuidRef]: F[UUID] = implicitly[Ref[F, UuidSeed]].getAndUpdate(_.next).map(_.uuid)
 }

@@ -15,3 +15,7 @@ trait SkuLookup[F[_]] {
 
   def resolveSku(s: String): F[Either[String, Sku]]
 }
+object SkuLookup {
+
+  def apply[F[_]](implicit s: SkuLookup[F]) = s
+}

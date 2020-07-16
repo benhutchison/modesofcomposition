@@ -10,6 +10,10 @@ trait Inventory[F[_]] {
   def inventoryPut(skuQty: SkuQuantity): F[Unit]
 
 }
+object Inventory {
+
+  def apply[F[_]](implicit i: Inventory[F]) = i
+}
 /** When an inventory take fails, details what was request and what is available. */
 case class InsufficientStock(requested: SkuQuantity, available: NatInt) {
   require(available < requested.quantity, s"require available $available < requested.quantity ${requested.quantity}")

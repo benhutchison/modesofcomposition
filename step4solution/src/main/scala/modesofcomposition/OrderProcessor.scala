@@ -13,9 +13,9 @@ object OrderProcessor {
 
     dispatchElseBackorder[F](order).>>= {
       case Right(dispatched) =>
-        F.publish(Topic.Dispatch, dispatched.asJson.toString.getBytes)
+        Publish[F].publish(Topic.Dispatch, dispatched.asJson.toString.getBytes)
       case Left((backorder, taken)) =>
-        F.publish(Topic.Backorder, backorder.asJson.toString.getBytes)
+        Publish[F].publish(Topic.Backorder, backorder.asJson.toString.getBytes)
 
     }
   }
@@ -26,10 +26,10 @@ object OrderProcessor {
   def dispatchElseBackorder[F[_]: Sync: Parallel: Clock: UuidRef: Inventory](order: CustomerOrder):
   F[Either[(Backorder, Chain[SkuQuantity]), Dispatched]] = {
 
-    order.items.parTraverse(F.inventoryTake).>>=(takes =>
+    order.items.parTraverse(Inventory[F].inventoryTake).>>=(takes =>
       insufficientsAndTaken(takes) match {
         case Some((insufficientStocks, taken)) =>
-          taken.parTraverse_(F.inventoryPut) >>
+          taken.parTraverse_(Inventory[F].inventoryPut) >>
           backorder(insufficientStocks, order).tupleRight(taken).map(_.asLeft)
         case None =>
           dispatch(order).map(_.asRight)

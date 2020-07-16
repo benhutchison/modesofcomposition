@@ -20,12 +20,12 @@ object OrderProcessor {
         JavaTime[F].getInstant.map(time =>
           Unavailable(nonAvailableSet, order, time)
         ).>>=(response =>
-          F.publish(Topic.Unavailable, response.asJson.toString.getBytes))
+          Publish[F].publish(Topic.Unavailable, response.asJson.toString.getBytes))
     }
   }
 
   //this is a no-op in step3
   def processAvailableOrder[F[_] : Sync: Parallel: Clock: UuidRef: Inventory: Publish]
-    (order: CustomerOrder): F[Unit] = F.unit
+    (order: CustomerOrder): F[Unit] = Sync[F].unit
 }
 
