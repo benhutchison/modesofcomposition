@@ -46,7 +46,10 @@ val circeVersion = "0.12.3"
 
 val commonSettings = Seq(
   scalaVersion := "2.13.2",
-  scalacOptions += s"-Yimports:${imports.mkString(",")}",
+  scalacOptions ++= Seq(
+    s"-Yimports:${imports.mkString(",")}",
+    "-Ywarn-value-discard"
+  ),
 
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
 
