@@ -1,4 +1,8 @@
-# Solution 
+# Step 2 
 
-This SBT subproject contains the completed solution including all steps. To get the best learning outcomes, it is recommended to attempt the
-[`step1`](./step1/),  [`step2`](./step2/) etc problems first before looking at my solutions.
+[Slides](./Step2Slides.pdf)
+
+To run tests:
+```
+sbt> step2/test
+```

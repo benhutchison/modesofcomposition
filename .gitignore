@@ -4,5 +4,7 @@
 *.png~
 *.png.kra
 
+.DS_Store
+
 project/target
 target
