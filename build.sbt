@@ -42,7 +42,7 @@ val imports = Array(
   "io.circe.syntax",
   "io.circe.refined",
 )
-val circeVersion = "0.12.3"
+val circeVersion = "0.13.0"
 
 val commonSettings = Seq(
   scalaVersion := "2.13.2",
@@ -51,23 +51,23 @@ val commonSettings = Seq(
     "-Ywarn-value-discard"
   ),
 
-  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.3" cross CrossVersion.full),
 
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-core" % "2.2.0-M1",
-    "org.typelevel" %% "cats-effect" % "2.1.4",
-    "org.typelevel" %% "cats-mtl-core" % "0.7.0",
+    "org.typelevel" %% "cats-effect" % "2.1.3",
+    "org.typelevel" %% "cats-mtl-core" % "0.7.1",
     "org.typelevel" %% "alleycats-core" % "2.2.0-M1",
     "co.fs2" %% "fs2-core" % "2.4.0",
-    "org.typelevel" %% "mouse" % "0.25",
+    "org.typelevel" %% "mouse" % "0.26.2",
     "io.circe" %% "circe-core" % circeVersion,
     "io.circe" %% "circe-generic"% circeVersion,
     "io.circe" %% "circe-parser" % circeVersion,
     "io.circe" %% "circe-refined" % circeVersion,
-    "eu.timepit" %% "refined" % "0.9.14",
-    "eu.timepit" %% "refined-cats" % "0.9.14",
+    "eu.timepit" %% "refined" % "0.9.21",
+    "eu.timepit" %% "refined-cats" % "0.9.21",
     "io.chrisdavenport" %% "cats-effect-time" % "0.1.2",
-    "org.scalameta" %% "munit" % "0.7.7" % Test,
+    "org.scalameta" %% "munit" % "0.7.22" % Test,
   ),
   //munit is a simple, modern alternative to the complexity of ScalaTest & Specs2
   testFrameworks += new TestFramework("munit.Framework")
