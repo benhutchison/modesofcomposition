@@ -45,7 +45,7 @@ val imports = Array(
 val circeVersion = "0.12.3"
 
 val commonSettings = Seq(
-  scalaVersion := "2.13.2",
+  scalaVersion := "2.13.5",
   scalacOptions ++= Seq(
     s"-Yimports:${imports.mkString(",")}",
     "-Ywarn-value-discard"
