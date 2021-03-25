@@ -58,7 +58,7 @@ val commonSettings = Seq(
     "org.typelevel" %% "cats-effect" % "2.1.3",
     "org.typelevel" %% "cats-mtl-core" % "0.7.0",
     "org.typelevel" %% "alleycats-core" % "2.2.0-M1",
-    "co.fs2" %% "fs2-core" % "2.4.0",
+    "co.fs2" %% "fs2-core" % "2.4.6",
     "org.typelevel" %% "mouse" % "0.25",
     "io.circe" %% "circe-core" % circeVersion,
     "io.circe" %% "circe-generic"% circeVersion,
