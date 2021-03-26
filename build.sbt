@@ -54,10 +54,10 @@ val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.3" cross CrossVersion.full),
 
   libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-core" % "2.2.0-M1",
+    "org.typelevel" %% "cats-core" % "2.2.0",
     "org.typelevel" %% "cats-effect" % "2.1.4",
     "org.typelevel" %% "cats-mtl-core" % "0.7.1",
-    "org.typelevel" %% "alleycats-core" % "2.2.0-M1",
+    "org.typelevel" %% "alleycats-core" % "2.2.0",
     "co.fs2" %% "fs2-core" % "2.4.0",
     "org.typelevel" %% "mouse" % "1.0.0",
     "io.circe" %% "circe-core" % circeVersion,
