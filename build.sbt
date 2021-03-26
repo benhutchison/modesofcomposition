@@ -45,7 +45,7 @@ val imports = Array(
 val circeVersion = "0.13.0"
 
 val commonSettings = Seq(
-  scalaVersion := "2.13.2",
+  scalaVersion := "2.13.5",
   scalacOptions ++= Seq(
     s"-Yimports:${imports.mkString(",")}",
     "-Ywarn-value-discard"
@@ -54,11 +54,11 @@ val commonSettings = Seq(
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.3" cross CrossVersion.full),
 
   libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-core" % "2.4.2",
-    "org.typelevel" %% "cats-effect" % "2.1.4",
+    "org.typelevel" %% "cats-core" % "2.2.0",
+    "org.typelevel" %% "cats-effect" % "2.4.0",
     "org.typelevel" %% "cats-mtl-core" % "0.7.1",
-    "org.typelevel" %% "alleycats-core" % "2.4.2",
-    "co.fs2" %% "fs2-core" % "2.4.0",
+    "org.typelevel" %% "alleycats-core" % "2.2.0",
+    "co.fs2" %% "fs2-core" % "2.4.6",
     "org.typelevel" %% "mouse" % "1.0.0",
     "io.circe" %% "circe-core" % circeVersion,
     "io.circe" %% "circe-generic"% circeVersion,
