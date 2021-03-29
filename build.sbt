@@ -55,7 +55,7 @@ val commonSettings = Seq(
 
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-core" % "2.4.2",
-    "org.typelevel" %% "cats-effect" % "3.0.0-RC1",
+    "org.typelevel" %% "cats-effect" % "3.0.0",
     "org.typelevel" %% "cats-mtl-core" % "0.7.1",
     "org.typelevel" %% "alleycats-core" % "2.4.2",
     "co.fs2" %% "fs2-core" % "3.0.0-M8",
