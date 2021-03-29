@@ -88,6 +88,6 @@ testWorking := Seq(
   solution / Test / test,
 ).dependOn.value
 
-githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("solution/test")))
+ThisBuild / githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("testWorking")))
 
-githubWorkflowPublishTargetBranches := Seq()
+ThisBuild / githubWorkflowPublishTargetBranches := Seq()
