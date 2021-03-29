@@ -87,3 +87,7 @@ testWorking := Seq(
   step5solution / Test / test,
   solution / Test / test,
 ).dependOn.value
+
+githubWorkflowBuild := Seq(WorkflowStep.Sbt(List("solution/test")))
+
+githubWorkflowPublishTargetBranches := Seq()

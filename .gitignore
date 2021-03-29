@@ -5,6 +5,7 @@
 *.png.kra
 
 .DS_Store
+.bsp
 
 project/target
 target
