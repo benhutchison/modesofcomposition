@@ -46,10 +46,9 @@ Expect to see the libraries download, then compilation, and finally tests tun gr
 
 ## Libraries Used
 
-[Cats](https://typelevel.org/cats/)
-[Cats Effect](https://typelevel.org/cats-effect/)
-[Circe](https://circe.github.io/circe/)
-[FS2](https://fs2.io/)
-[Refined](https://github.com/fthomas/refined)
-[Mouse](https://github.com/typelevel/mouse)
-[Cats Effect Time](https://christopherdavenport.github.io/cats-effect-time)
+* [Cats](https://typelevel.org/cats/)
+* [Cats Effect 3.x](https://typelevel.org/cats-effect/)
+* [Circe](https://circe.github.io/circe/)
+* [FS2 3.x](https://fs2.io/)
+* [Refined](https://github.com/fthomas/refined)
+* [Mouse](https://github.com/typelevel/mouse)
