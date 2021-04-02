@@ -1,4 +1,4 @@
-import cats.effect.concurrent.Ref
+import cats.effect.Ref
 
 package object modesofcomposition extends RefinedSupport with ErrorValueSupport {
 

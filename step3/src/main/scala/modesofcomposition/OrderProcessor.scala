@@ -2,12 +2,12 @@ package modesofcomposition
 
 import scala.collection.immutable.SortedSet
 
-import io.chrisdavenport.cats.effect.time.JavaTime
+
 import java.util.UUID
 
 object OrderProcessor {
 
-  def processCustomerOrder[F[_]: Sync: Parallel: Clock: UuidRef: Inventory: Publish](
+  def processCustomerOrder[F[_]: Sync: Parallel: EventTime :UuidRef: Inventory: Publish](
     order: CustomerOrder): F[Unit] = {
 
     val nonAvailableSkus: Chain[Sku] = ???
@@ -21,7 +21,7 @@ object OrderProcessor {
   }
 
   //this is a no-op in step3
-  def processAvailableOrder[F[_] : Functor: Sync: Parallel: Clock: UuidRef: Inventory: Publish]
+  def processAvailableOrder[F[_] : Functor: Sync: Parallel: EventTime :UuidRef: Inventory: Publish]
     (order: CustomerOrder): F[Unit] = Sync[F].unit
 }
 

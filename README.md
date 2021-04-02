@@ -1,8 +1,11 @@
 # Modes of composition
 
-Lambdajam 2020 online workshop in Compositional Functional Programming in Scala.
+Workshop in Compositional Functional Programming in Scala, developed by Ben Hutchison (`brhutchison@gmail.com`)
 
-Presenting July 20 & 21, 10am by Ben Hutchison (`brhutchison@gmail.com`)
+## Workshop History
+
+- Scheduled Lambdajam Online 2021, May 3 & 4, 10am
+- Presented Lambdajam Online 2020, July 20 & 21 2020, 10am 
 
 ## Layout
 
