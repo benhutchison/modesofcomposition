@@ -1,6 +1,6 @@
 package modesofcomposition
 
-class OrderProcessorTests extends munit.FunSuite {
+class OrderProcessorTests extends munit.CatsEffectSuite {
 
   type F[X] = IO[X]
 

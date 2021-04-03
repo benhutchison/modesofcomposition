@@ -1,8 +1,11 @@
 package modesofcomposition
 
-import cats.effect.concurrent.Ref
+import cats.effect.Ref
+
+import java.time.Instant
+import java.util.concurrent.TimeUnit
 import scala.collection.mutable
-import scala.concurrent.duration.TimeUnit
+import scala.concurrent.duration.{FiniteDuration, TimeUnit}
 
 trait TestSupport {
   type F[X] = IO[X]
@@ -33,11 +36,7 @@ trait TestSupport {
   )
 
   val currMillis = 1577797200000L
-  implicit val clock = TestSupport.clock[F](currMillis) //2020-1-1
-
-  implicit val cs: ContextShift[IO] = IO.contextShift(scala.concurrent.ExecutionContext.global)
-  implicit val timer = IO.timer(scala.concurrent.ExecutionContext.global)
-
+  implicit val eventTime = eventTime[F](Instant.ofEpochMilli(currMillis)) //2020-1-1
 
 
   def fromJsonBytes[T: Decoder](bytes: Array[Byte]) = {
@@ -47,10 +46,8 @@ trait TestSupport {
   def inventory[F[_]: Sync](initialStock: Map[Sku, NatInt]): TestInventory[F] =
     new TestInventory[F](initialStock)
 
-  def clock[F[_]: Applicative](time: Long) = new Clock[F] {
-    override def realTime(unit: TimeUnit): F[Long] = Applicative[F].pure(time)
-
-    override def monotonic(unit: TimeUnit): F[Long] = Applicative[F].pure(time)
+  def eventTime[F[_]: Applicative](time: Instant) = new EventTime[F] {
+    override def currentInstant: F[Instant] = Applicative[F].pure(time)
   }
 
   def orderJson(customerIdStr: String, hippoQty: Int, rabbitQty: Int) = {

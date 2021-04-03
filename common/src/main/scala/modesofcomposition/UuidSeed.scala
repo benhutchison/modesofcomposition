@@ -1,7 +1,6 @@
 package modesofcomposition
 
 import java.util.UUID
-import cats.effect.concurrent.Ref
 
 /** A 256bit immutable pseudo-random generator seed.
  *

@@ -27,8 +27,6 @@ val imports = Array(
   "cats.implicits",
   "cats.effect",
   "cats.effect.implicits",
-  "cats.mtl",
-  "cats.mtl.implicits",
   "fs2",
   "mouse.all",
   "eu.timepit.refined",
@@ -55,19 +53,18 @@ val commonSettings = Seq(
 
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-core" % "2.4.2",
-    "org.typelevel" %% "cats-effect" % "2.4.0",
-    "org.typelevel" %% "cats-mtl-core" % "0.7.1",
+    "org.typelevel" %% "cats-effect" % "3.0.1",
     "org.typelevel" %% "alleycats-core" % "2.4.2",
-    "co.fs2" %% "fs2-core" % "2.5.3",
+    "co.fs2" %% "fs2-core" % "3.0.0",
     "org.typelevel" %% "mouse" % "1.0.0",
     "io.circe" %% "circe-core" % circeVersion,
     "io.circe" %% "circe-generic"% circeVersion,
     "io.circe" %% "circe-parser" % circeVersion,
     "io.circe" %% "circe-refined" % circeVersion,
-    "eu.timepit" %% "refined" % "0.9.22",
-    "eu.timepit" %% "refined-cats" % "0.9.22",
-    "io.chrisdavenport" %% "cats-effect-time" % "0.1.2",
+    "eu.timepit" %% "refined" % "0.9.21",
+    "eu.timepit" %% "refined-cats" % "0.9.21",
     "org.scalameta" %% "munit" % "0.7.22" % Test,
+    "org.typelevel" %% "munit-cats-effect-3" % "1.0.0" % Test,
   ),
   //munit is a simple, modern alternative to the complexity of ScalaTest & Specs2
   testFrameworks += new TestFramework("munit.Framework")
