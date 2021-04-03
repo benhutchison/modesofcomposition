@@ -2,7 +2,7 @@ package modesofcomposition
 
 import scala.collection.immutable.SortedSet
 
-import io.chrisdavenport.cats.effect.time.JavaTime
+
 import java.util.UUID
 
 object OrderProcessor {
