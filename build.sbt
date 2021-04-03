@@ -64,7 +64,7 @@ val commonSettings = Seq(
     "eu.timepit" %% "refined" % "0.9.21",
     "eu.timepit" %% "refined-cats" % "0.9.21",
     "org.scalameta" %% "munit" % "0.7.22" % Test,
-    "org.typelevel" %% "munit-cats-effect-3" % "1.0.0" % Test,
+    "org.typelevel" %% "munit-cats-effect-3" % "1.0.1" % Test,
   ),
   //munit is a simple, modern alternative to the complexity of ScalaTest & Specs2
   testFrameworks += new TestFramework("munit.Framework")
