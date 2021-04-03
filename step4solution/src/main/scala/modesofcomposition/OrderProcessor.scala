@@ -1,6 +1,6 @@
 package modesofcomposition
 
-import io.chrisdavenport.cats.effect.time.JavaTime
+
 
 import scala.collection.immutable.SortedSet
 
@@ -8,7 +8,7 @@ object OrderProcessor {
 
   /** Delegates to dispatchElseBackorder to determine whether the order can be dispatched, then publishes
    * the appropriate message. If   */
-  def processAvailableOrder[F[_]: Sync: Parallel: Clock: UuidRef: Inventory: Publish]
+  def processAvailableOrder[F[_]: Sync: Parallel: EventTime :UuidRef: Inventory: Publish]
   (order: CustomerOrder): F[Unit] = {
 
     dispatchElseBackorder[F](order).>>= {
@@ -23,7 +23,7 @@ object OrderProcessor {
   /** Key order business logic: try to take all ordered items from inventory. If all are in stock,
    * the order is dispatched. If any have insufficient stock, then the order wont proceed: return all items
    * to inventory and raise a backorder. */
-  def dispatchElseBackorder[F[_]: Sync: Parallel: Clock: UuidRef: Inventory](order: CustomerOrder):
+  def dispatchElseBackorder[F[_]: Sync: Parallel: EventTime :UuidRef: Inventory](order: CustomerOrder):
   F[Either[(Backorder, Chain[SkuQuantity]), Dispatched]] = {
 
     order.items.parTraverse(Inventory[F].inventoryTake).>>=(takes =>
@@ -37,7 +37,7 @@ object OrderProcessor {
   }
 
   /** Generate a backorder by calculating the shortfall in stock to satisfy order */
-  def backorder[F[_]: Sync: Clock]
+  def backorder[F[_]: Sync: EventTime]
   (insufficientStocks: NonEmptyChain[InsufficientStock], order: CustomerOrder):
   F[Backorder] = {
     (
@@ -45,16 +45,16 @@ object OrderProcessor {
         case InsufficientStock(SkuQuantity(sku, required), available) =>
           PosInt.fromF[F](required - available).map(SkuQuantity(sku, _))
       },
-      JavaTime[F].getInstant,
+      EventTime[F].currentInstant,
       ).mapN {
       case (requiredStock, time) => Backorder(requiredStock, order, time)
     }
   }
 
   /** generate a dispatch combining the order, a timestap and UUID */
-  def dispatch[F[_]: Sync: Clock: UuidRef](order: CustomerOrder): F[Dispatched] = {
+  def dispatch[F[_]: Sync: EventTime :UuidRef](order: CustomerOrder): F[Dispatched] = {
     (
-      JavaTime[F].getInstant,
+      EventTime[F].currentInstant,
       UuidSeed.nextUuid[F]
       ).mapN {
       case (time, id) => Dispatched(order, time, id)

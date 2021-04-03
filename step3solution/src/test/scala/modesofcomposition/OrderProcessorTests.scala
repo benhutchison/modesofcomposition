@@ -3,9 +3,7 @@ package modesofcomposition
 import java.util.UUID
 import java.time.Instant
 
-import cats.effect.concurrent.Ref
-
-class OrderProcessorTests extends munit.FunSuite with TestSupport {
+class OrderProcessorTests extends munit.CatsEffectSuite with TestSupport {
 
   test("processCustomerOrder - unavailable") {
     implicit val inv = TestSupport.inventory[F](initialStock)
