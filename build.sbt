@@ -63,7 +63,7 @@ val commonSettings = Seq(
     "io.circe" %% "circe-refined" % circeVersion,
     "eu.timepit" %% "refined" % "0.9.21",
     "eu.timepit" %% "refined-cats" % "0.9.21",
-    "org.scalameta" %% "munit" % "0.7.22" % Test,
+    "org.scalameta" %% "munit" % "0.7.25" % Test,
     "org.typelevel" %% "munit-cats-effect-3" % "1.0.0" % Test,
   ),
   //munit is a simple, modern alternative to the complexity of ScalaTest & Specs2
