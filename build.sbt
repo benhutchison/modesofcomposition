@@ -49,7 +49,7 @@ val commonSettings = Seq(
     "-Ywarn-value-discard"
   ),
 
-  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.3" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.0" cross CrossVersion.full),
 
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-core" % "2.6.0",
