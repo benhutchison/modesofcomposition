@@ -40,7 +40,7 @@ val imports = Array(
   "io.circe.syntax",
   "io.circe.refined",
 )
-val circeVersion = "0.13.0"
+val circeVersion = "0.14.9"
 
 val commonSettings = Seq(
   scalaVersion := "2.13.5",
